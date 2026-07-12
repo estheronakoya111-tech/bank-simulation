@@ -104,9 +104,16 @@ const Intro = ({ onFinish }) => {
       </div>
 
       {/* FOOTER NAV INTERACTIVE MODULE */}
-      <footer data-animate-frame className="w-full z-20 flex justify-end shrink-0">
+      <footer data-animate-frame className="w-full z-20 flex flex-col sm:flex-row items-center justify-between gap-6 shrink-0">
         
-        {/* CUSTOM ROUNDED BUTTON: Black background, silver text, soft off-black borders */}
+        {/* SHARP VISIBLE DISCLAIMER */}
+        <div className="max-w-md text-left">
+          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-[0.1em] border-l-2 border-neutral-700 pl-4">
+            Disclaimer: This is a student project simulation. No real money or financial services are provided. Not affiliated with any real financial institution.
+          </p>
+        </div>
+        
+        {/* CUSTOM ROUNDED BUTTON */}
         <button
           onClick={onFinish}
           className="group flex items-center justify-between gap-8 pl-6 pr-4 py-4 bg-[#05070a] border border-[#121824] hover:border-neutral-700 rounded-full transition-all duration-300 cursor-pointer active:scale-[0.98] shadow-2xl"
