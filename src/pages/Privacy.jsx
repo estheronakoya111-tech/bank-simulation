@@ -136,10 +136,10 @@ const Privacy = ({ onBack }) => {
       <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none" />
 
       {/* HEADER */}
-      <header className="w-full max-w-6xl flex justify-between items-center py-6 z-50 bg-[#020205]/80 backdrop-blur-md sticky top-0">
+      <header className="w-full max-w-6xl flex justify-between items-center py-6 z-50 sticky top-0 bg-transparent">
         <div className="flex items-center gap-3">
             <ShieldCheck className="text-white/40" size={24} />
-            <h1 className="text-xl font-black italic tracking-tighter text-white uppercase">
+            <h1 className="text-2xl font-light tracking-widest text-white uppercase">
               Privacy <span className="text-white/40">Settings</span>
             </h1>
         </div>
