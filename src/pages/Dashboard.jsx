@@ -513,4 +513,20 @@ const Dashboard = ({ onLogout, triggerTransfer, triggerBills, triggerPrivacy, tr
                      else if (item.n === 'Support Link') { toggleDrawer(); triggerSupport(); }
                      else if (item.n === 'Account Settings') { toggleDrawer(); triggerSettings(); } 
                      else showComingSoon(item.n);
-                   }} className="flex items
+                   }} className="flex items-center gap-4 group cursor-pointer opacity-75 hover:opacity-100 transition-all">
+                     <i className={`pi ${item.i} text-white font-bold text-base group-hover:text-white`} />
+                     <p className="text-white/70 text-[11px] uppercase tracking-[0.25em] font-bold group-hover:text-white">{item.n}</p>
+                   </div>
+                 ))}
+              </div>
+            </div>
+            <button onClick={handleLogout} className="w-full py-4 border border-red-500/20 bg-red-500/5 text-red-400 text-[10px] tracking-[0.6em] uppercase rounded-2xl hover:bg-red-500/10 transition-all font-bold cursor-pointer">Terminate</button>
+         </div>
+      </div>
+
+      <link rel="stylesheet" href="https://unpkg.com/primeicons/primeicons.css" />
+    </div>
+  );
+};
+
+export default Dashboard;
