@@ -87,6 +87,7 @@ const Otp = ({ username, onAuthSuccess, onBack, userEmail }) => {
       return () => clearInterval(interval);
     } else {
       setStatusMsg("Code expired. Please request a new one.");
+      setOtp(new Array(6).fill("")); // Clean old inputs so they don't trigger backend loops
     }
   }, [timer]);
 
@@ -99,7 +100,8 @@ const Otp = ({ username, onAuthSuccess, onBack, userEmail }) => {
   }, [resendCooldown]);
 
   useEffect(() => {
-    if (otp.every(digit => digit !== "") && statusMsg !== "Verifying Code...") {
+    // Only execute network verify if all fields are populated and timer is actively valid
+    if (otp.every(digit => digit !== "") && statusMsg !== "Verifying Code..." && timer > 0) {
       handleVerify();
     }
   }, [otp]);
@@ -147,12 +149,12 @@ const Otp = ({ username, onAuthSuccess, onBack, userEmail }) => {
     setStatusMsg("Sending new code...");
     
     try {
-      // Pulls register or user profiles via input logs
-      const targetEmail = userEmail || formData?.email || sessionStorage.getItem("pending_email") || "";
+      // Pull backup registration parameters or username identities cleanly
+      const targetEmail = userEmail || sessionStorage.getItem("pending_email") || username;
       const response = await fetch(`${import.meta.env.VITE_BANK_BACKEND_URL}/resend-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: targetEmail || username }) 
+        body: JSON.stringify({ email: targetEmail }) 
       });
       
       const data = await response.json();
@@ -217,7 +219,7 @@ const Otp = ({ username, onAuthSuccess, onBack, userEmail }) => {
       </header>
 
       <div className="w-full max-w-2xl mx-auto my-auto z-10 flex flex-col items-center text-center py-8 shrink-0">
-        <div data-animate-otp className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-center text-neutral-400 mb-8">
+        <div window-animate-otp="true" data-animate-otp className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-center text-neutral-400 mb-8">
           <KeyRound size={20} className="animate-pulse" />
         </div>
 
@@ -243,10 +245,11 @@ const Otp = ({ username, onAuthSuccess, onBack, userEmail }) => {
               type="text" 
               maxLength="1" 
               value={data} 
+              disabled={timer === 0}
               onPaste={handlePaste} 
               onChange={(e) => handleChange(e.target, index)} 
               onKeyDown={(e) => handleNextInput(e, index)}
-              className="w-11 h-16 sm:w-16 sm:h-24 bg-[#05070a]/60 border border-white/10 text-white text-3xl sm:text-5xl font-light text-center focus:border-white/40 focus:bg-[#070913] outline-none transition-all duration-300 rounded-2xl font-mono shadow-2xl backdrop-blur-md"
+              className="w-11 h-16 sm:w-16 sm:h-24 bg-[#05070a]/60 border border-white/10 text-white text-3xl sm:text-5xl font-light text-center focus:border-white/40 focus:bg-[#070913] outline-none transition-all duration-300 rounded-2xl font-mono shadow-2xl backdrop-blur-md disabled:opacity-30 disabled:cursor-not-allowed"
             />
           ))}
         </div>
