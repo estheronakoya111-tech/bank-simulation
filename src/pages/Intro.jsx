@@ -63,42 +63,42 @@ const Intro = ({ onFinish }) => {
         muted
         playsInline
         preload="auto"
-        className="absolute inset-0 w-full h-full object-cover z-0 opacity-50 pointer-events-none"
+        className="absolute inset-0 w-full h-full object-cover z-0 opacity-40 pointer-events-none"
       >
         <source src={introVideo} type="video/mp4" />
         <source src="/src/assets/Intro.mp4" type="video/mp4" />
       </video>
 
       {/* THE BRUTALIST VEIL */}
-      <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(10,35,80,0.2)_0%,rgba(1,2,4,0.7)_80%)] z-10 pointer-events-none" />
+      <div className="absolute inset-0 bg-black/50 z-10 pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(10,35,80,0.15)_0%,rgba(1,2,4,0.8)_80%)] z-10 pointer-events-none" />
 
       {/* TOP LINE BRAND FRAME BLOCK */}
       <header data-animate-frame className="w-full flex justify-between items-center z-20 shrink-0">
-        <span className="text-[10px] font-mono tracking-[0.4em] uppercase text-neutral-400">
-          ESTRA // NET
+        <span className="text-[10px] font-medium tracking-[0.3em] uppercase text-neutral-300">
+          Estra Financial
         </span>
-        <span className="text-[9px] font-mono tracking-widest text-neutral-600 uppercase">
-          SYS_READY
+        <span className="text-[9px] font-mono tracking-widest text-neutral-500 uppercase">
+          System Active
         </span>
       </header>
 
-      {/* CENTRAL MINIMALIST MESSAGE SUITE - CENTER OF ATTRACTION LAYOUT */}
+      {/* CENTRAL MINIMALIST MESSAGE SUITE */}
       <div className="z-20 text-center max-w-5xl mx-auto my-auto flex flex-col items-center justify-center">
         
-        {/* BIGGER WHITE AND CRISP CHROMIUM SILVER-BLACK MIXED HIGH-END TITLES */}
-        <h1 className="text-6xl sm:text-8xl md:text-9xl font-black tracking-tighter uppercase mb-2 leading-[0.92]">
-          <span data-animate-text className="bg-gradient-to-b from-white to-neutral-300 bg-clip-text text-transparent block">
-            WELCOME TO{" "}
+        {/* SOPHISTICATED TITLES */}
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight uppercase mb-4 leading-[1.1]">
+          <span data-animate-text className="bg-gradient-to-b from-slate-200 to-white bg-clip-text text-transparent block">
+            Banking Designed{" "}
           </span>
-          <span data-animate-text className="bg-gradient-to-b from-neutral-100 via-white to-neutral-800 bg-clip-text text-transparent block mt-1 filter drop-shadow-[0_4px_30px_rgba(255,255,255,0.08)]">
-            ESTRA BANKING
+          <span data-animate-text className="bg-gradient-to-b from-slate-300 to-white bg-clip-text text-transparent block mt-1">
+            For Your Future
           </span>
         </h1>
 
-        {/* SUB-MANIFESTO CAPTION - POSITIONED MUCH CLOSER WITH PERFECT CAPS SPECIFICATION */}
-        <p data-animate-text className="text-base sm:text-lg md:text-xl font-serif italic tracking-wide text-neutral-400 mt-1">
-          Redefining Financial Flow
+        {/* SUB-MANIFESTO CAPTION */}
+        <p data-animate-text className="text-sm sm:text-base md:text-lg font-light tracking-wide text-neutral-300 mt-2">
+          Secure, simple, and tailored to you.
         </p>
 
       </div>
@@ -108,20 +108,20 @@ const Intro = ({ onFinish }) => {
         
         {/* SHARP VISIBLE DISCLAIMER */}
         <div className="max-w-md text-left">
-          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-[0.1em] border-l-2 border-neutral-700 pl-4">
-            Disclaimer: This is a student project simulation. No real money or financial services are provided. Not affiliated with any real financial institution.
+          <p className="text-[9px] text-neutral-600 font-bold uppercase tracking-[0.1em] border-l-2 border-neutral-800 pl-4">
+            Disclaimer: This platform is for demonstration purposes only. It is not affiliated with any real financial institution.
           </p>
         </div>
         
         {/* CUSTOM ROUNDED BUTTON */}
         <button
           onClick={onFinish}
-          className="group flex items-center justify-between gap-8 pl-6 pr-4 py-4 bg-[#05070a] border border-[#121824] hover:border-neutral-700 rounded-full transition-all duration-300 cursor-pointer active:scale-[0.98] shadow-2xl"
+          className="group flex items-center justify-between gap-8 pl-8 pr-4 py-4 bg-white hover:bg-neutral-200 rounded-full transition-all duration-300 cursor-pointer active:scale-[0.98] shadow-2xl"
         >
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#d1d5db] group-hover:text-white transition-colors">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-black">
             Get Started
           </span>
-          <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black transition-transform duration-300 group-hover:rotate-45 group-hover:bg-blue-600 group-hover:text-white">
+          <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-white transition-transform duration-300 group-hover:rotate-45">
             <ArrowUpRight size={14} />
           </div>
         </button>
