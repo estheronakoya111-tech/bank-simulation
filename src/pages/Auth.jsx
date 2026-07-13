@@ -125,12 +125,29 @@ const Auth = ({ onAuthSuccess }) => {
     if (mode === "login") {
       endpoint = "/login";
       payload = { username: formData.username, password: formData.password };
+      
+      // Auto-parking dynamic parameters for known profiles or test layouts locally
+      if (formData.username.trim() === "EstherAdmin") {
+        sessionStorage.setItem("pending_email", "estheronakoya111@gmail.com");
+      } else if (formData.username.trim().includes("@")) {
+        sessionStorage.setItem("pending_email", formData.username.trim());
+      }
     } else if (mode === "signup") {
       endpoint = "/register";
       payload = { username: formData.username, email: formData.email, password: formData.password };
+      
+      // Capturing real registration parameters explicitly before hitting endpoint requests
+      if (formData.email.trim()) {
+        sessionStorage.setItem("pending_email", formData.email.trim());
+      }
     } else if (mode === "forgot" && step === 1) {
       endpoint = "/forgot-password";
       payload = { email: formData.email };
+      
+      // Capturing recovery destination address explicitly 
+      if (formData.email.trim()) {
+        sessionStorage.setItem("pending_email", formData.email.trim());
+      }
     } else if (mode === "forgot" && step === 2) {
       endpoint = "/reset-password";
       payload = { email: formData.email, code: formData.otpCode, new_password: formData.newPassword };
