@@ -78,7 +78,7 @@ const Intro = ({ onFinish }) => {
           </span>
           <span
   data-animate-text
-  className="block mt-2 bg-gradient-to-b from-[#1A2350] to-[#0B1026] bg-clip-text text-transparent drop-shadow-[0_2px_2px_rgba(59,130,246,0.25)]"
+  className="block mt-2 bg-gradient-to-b from-white via-[#C7D7FF] to-[#4F7CFF] bg-clip-text text-transparent drop-shadow-[0_0_16px_rgba(79,124,255,0.35)]"
 >
   Estra Banking
 </span>
