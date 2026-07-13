@@ -46,6 +46,7 @@ const Auth = ({ onAuthSuccess }) => {
   const [mode, setMode] = useState("login"); // "login" | "signup" | "forgot"
   const [step, setStep] = useState(1); 
   const [isTicked, setIsTicked] = useState(false);
+  const [isRobotTicked, setIsRobotTicked] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
   
   // PASSWORD VISIBILITY SEPARATE TOGGLES
@@ -75,23 +76,35 @@ const Auth = ({ onAuthSuccess }) => {
     }));
   };
 
+  // --- RESPONSIVE DEVICE MONITORING ---
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkViewport = () => setIsMobile(window.innerWidth < 1024);
+    checkViewport();
+    window.addEventListener("resize", checkViewport);
+    return () => window.removeEventListener("resize", checkViewport);
+  }, []);
+
   // --- SECURITY VALIDATION GUARDS ---
-  const isLoginValid = formData.username.trim() !== "" && formData.password.trim() !== "";
+  const isLoginValid = formData.username.trim() !== "" && formData.password.trim() !== "" && isRobotTicked;
+  const isForgotStep1Valid = formData.email.trim().includes("@");
+  const isForgotStep2Valid = formData.otpCode.trim() !== "" && formData.newPassword.length >= 8 && isRobotTicked;
+  
+  // Adaptive validation depending on mobile continuous vs desktop step layouts
   const isSignupStep1Valid = formData.fullName.trim() !== "" && formData.email.trim().includes("@");
   const isSignupStep2Valid = formData.username.trim() !== "" && formData.password.length >= 8 && isTicked;
-  const isForgotStep1Valid = formData.email.trim().includes("@");
-  const isForgotStep2Valid = formData.otpCode.trim() !== "" && formData.newPassword.length >= 8;
+  const isMobileSignupValid = formData.fullName.trim() !== "" && formData.email.trim().includes("@") && formData.username.trim() !== "" && formData.password.length >= 8 && isTicked;
 
   // --- PREMIUM STATIONARY DISSOLVE TIMELINE ---
   const handleTransitionFade = (stateUpdateCallback) => {
-    gsap.to(".input-group, .form-header-labels", {
+    gsap.to(".input-group, .form-header-labels, .mobile-security-row", {
       opacity: 0,
       y: -5,
       duration: 0.2,
       ease: "power2.in",
       onComplete: () => {
         stateUpdateCallback();
-        gsap.to(".input-group, .form-header-labels", {
+        gsap.to(".input-group, .form-header-labels, .mobile-security-row", {
           opacity: 1,
           y: 0,
           duration: 0.3,
@@ -148,6 +161,7 @@ const Auth = ({ onAuthSuccess }) => {
             handleTransitionFade(() => {
               setMode("login");
               setStep(1);
+              setIsRobotTicked(false);
               setStatusMsg("");
             });
           }, 1500);
@@ -156,6 +170,7 @@ const Auth = ({ onAuthSuccess }) => {
           setTimeout(() => {
             handleTransitionFade(() => {
               setStep(2);
+              setIsRobotTicked(false);
               setStatusMsg("");
             });
           }, 1500);
@@ -165,6 +180,7 @@ const Auth = ({ onAuthSuccess }) => {
             handleTransitionFade(() => {
               setMode("login");
               setStep(1);
+              setIsRobotTicked(false);
               setStatusMsg("");
             });
           }, 1500);
@@ -188,9 +204,9 @@ const Auth = ({ onAuthSuccess }) => {
       iconRef.current.forEach((el, i) => {
         if (el) {
           gsap.to(el, {
-            y: "random(-20, 20)",
-            x: "random(-20, 20)",
-            duration: "random(6, 9)",
+            y: "random(-25, 25)",
+            x: "random(-25, 25)",
+            duration: "random(5, 8)",
             repeat: -1, yoyo: true, ease: "sine.inOut"
           });
         }
@@ -212,6 +228,7 @@ const Auth = ({ onAuthSuccess }) => {
       setMode(mode === "login" ? "signup" : "login");
       setStep(1);
       setIsTicked(false);
+      setIsRobotTicked(false);
       setStatusMsg("");
       setShowLoginPassword(false);
       setShowSignupPassword(false);
@@ -224,6 +241,7 @@ const Auth = ({ onAuthSuccess }) => {
     handleTransitionFade(() => {
       setMode("forgot");
       setStep(1);
+      setIsRobotTicked(false);
       setStatusMsg("");
       setFormData({ username: "", password: "", email: "", fullName: "", otpCode: "", newPassword: "" });
     });
@@ -240,22 +258,23 @@ const Auth = ({ onAuthSuccess }) => {
         <div className="absolute inset-0 bg-gradient-to-tr from-blue-950/30 via-transparent to-black" />
       </div>
 
-      {/* 16 FLOWING ATMOSPHERIC SILVER DECORATIONS */}
+      {/* 22 EXTENDED FLOATING ATMOSPHERIC SILVER DECORATIONS FOR BEAUTIFUL MOBILE INTERFACES */}
       <div className="absolute inset-0 z-5 pointer-events-none overflow-hidden">
         {[
           Shield, Lock, Activity, Cpu, Globe, Zap, Wallet, Landmark,
-          Shield, Lock, Activity, Cpu, Globe, Zap, Wallet, Landmark
+          Shield, Lock, Activity, Cpu, Globe, Zap, Wallet, Landmark,
+          Shield, Lock, Activity, Cpu, Globe, Zap
         ].map((Icon, idx) => (
           <div 
             key={idx}
             ref={el => iconRef.current[idx] = el}
-            className="absolute opacity-10 lg:opacity-20 text-slate-400 drop-shadow-[0_0_6px_rgba(255,255,255,0.15)] transition-opacity"
+            className="absolute opacity-[0.12] lg:opacity-20 text-slate-400 drop-shadow-[0_0_6px_rgba(255,255,255,0.15)] transition-opacity"
             style={{ 
-              top: `${6 + (idx * 5.8)}%`, 
-              left: `${(idx % 2 === 0 ? 3 + (idx * 0.4) : 93 - (idx * 0.4))}%` 
+              top: `${4 + (idx * 4.2)}%`, 
+              left: `${(idx % 2 === 0 ? 2 + (idx * 0.4) : 94 - (idx * 0.4))}%` 
             }}
           >
-            <Icon size={idx % 3 === 0 ? 24 : idx % 3 === 1 ? 32 : 40} strokeWidth={1.2} />
+            <Icon size={idx % 3 === 0 ? 24 : idx % 3 === 1 ? 30 : 38} strokeWidth={1.2} />
           </div>
         ))}
       </div>
@@ -279,12 +298,12 @@ const Auth = ({ onAuthSuccess }) => {
           </div>
         </div>
 
-        {/* --- DYNAMIC ACTION PANEL (Optimized container spaces for Medium Screens / Small Laptops) --- */}
+        {/* --- DYNAMIC ACTION PANEL (Responsive Layout for Mobile and Laptops) --- */}
         <div className="w-full lg:w-[45%] xl:w-2/5 flex items-center justify-center p-4 sm:p-8 md:p-12 min-h-screen">
           
           <div 
             ref={capsuleRef} 
-            className="w-full max-w-[420px] sm:max-w-[450px] lg:max-w-[410px] xl:max-w-[460px] bg-gradient-to-br from-white/[0.08] via-slate-950/[0.4] to-white/[0.01] backdrop-blur-[35px] border border-white/15 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 lg:p-10 xl:p-12 shadow-2xl relative overflow-hidden transition-all"
+            className="w-[92%] sm:w-full max-w-[420px] sm:max-w-[450px] lg:max-w-[410px] xl:max-w-[460px] bg-gradient-to-br from-white/[0.08] via-slate-950/[0.4] to-white/[0.01] backdrop-blur-[35px] border border-white/5 lg:border-white/15 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 lg:p-10 xl:p-12 shadow-2xl relative overflow-hidden transition-all h-auto py-8 sm:py-10"
           >
             {/* Top Brand Identity */}
             <div className="flex flex-col items-center mb-6 sm:mb-8 lg:mb-6 xl:mb-10">
@@ -297,15 +316,24 @@ const Auth = ({ onAuthSuccess }) => {
             </div>
 
             <form onSubmit={handleSubmit} className="relative z-10 flex flex-col gap-5 sm:gap-6 xl:gap-7">
-              <div className="form-header-labels space-y-1 text-center lg:text-left">
+              <div className="form-header-labels space-y-2 text-center lg:text-left">
                 {statusMsg && (
                   <div className="bg-slate-900/80 border border-white/10 rounded-xl px-4 py-2 mb-2">
                     <p className="text-[13px] text-slate-300 font-extrabold tracking-wide text-center lg:text-left">{statusMsg}</p>
                   </div>
                 )}
                 <h2 className="text-2xl sm:text-3xl lg:text-2xl xl:text-3xl font-black tracking-[0.12em] bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent uppercase">
-                  {mode === "login" ? "Sign In" : mode === "signup" ? (step === 1 ? "Create Account" : "Set Details") : "Reset Password"}
+                  {mode === "login" ? "Sign In" : mode === "signup" ? ((isMobile || step === 2) ? "Create Account" : "Create Account") : "Reset Password"}
                 </h2>
+                
+                {/* Horizontal Title Icons on Mobile for Login and Forgot Password layouts */}
+                {mode !== "signup" && isMobile && (
+                  <div className="mobile-security-row flex items-center justify-center gap-6 py-2 border-y border-white/5 my-2">
+                    <Shield size={18} className="text-slate-400 opacity-80" />
+                    <Lock size={18} className="text-slate-400 opacity-80" />
+                    <Cpu size={18} className="text-slate-400 opacity-80" />
+                  </div>
+                )}
                 <p className="text-slate-400 text-xs tracking-wide font-medium">Please enter your details below.</p>
               </div>
 
@@ -329,7 +357,8 @@ const Auth = ({ onAuthSuccess }) => {
 
                 {mode === "signup" && (
                   <>
-                    {step === 1 ? (
+                    {/* Stacks all 4 fields into a continuous view layout on mobile */}
+                    {(isMobile || step === 1) && (
                       <>
                         <div className="relative">
                           <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -340,7 +369,8 @@ const Auth = ({ onAuthSuccess }) => {
                           <input key="signup-email" name="email" value={formData.email} onChange={handleChange} type="email" placeholder="Email Address" className="w-full bg-black/60 border border-white/10 rounded-xl pl-12 pr-5 py-3 xl:py-3.5 outline-none focus:border-white/40 transition-all text-[15px] font-medium text-white placeholder:text-slate-500 shadow-inner" required />
                         </div>
                       </>
-                    ) : (
+                    )}
+                    {(isMobile || step === 2) && (
                       <>
                         <div className="relative">
                           <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -394,7 +424,7 @@ const Auth = ({ onAuthSuccess }) => {
               )}
 
               {/* PROTOCOLS TICK BOX */}
-              {mode === "signup" && step === 2 && (
+              {mode === "signup" && (isMobile || step === 2) && (
                 <div className="flex items-start gap-3 px-1 cursor-pointer group/tick select-none" onClick={() => setIsTicked(!isTicked)}>
                   <div className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 shrink-0 ${isTicked ? 'bg-white border-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-white/20 group-hover/tick:border-white/40'}`}>
                     {isTicked && <CheckCircle2 size={14} className="text-black" />}
@@ -405,25 +435,38 @@ const Auth = ({ onAuthSuccess }) => {
                 </div>
               )}
 
+              {/* "NOT A ROBOT" SECURE TICK CIRCLE VALIDATION FIELD */}
+              {(mode === "login" || mode === "forgot" || (mode === "signup" && isMobile)) && (
+                <div className="flex items-start gap-3 px-1 cursor-pointer group/robot select-none border-t border-white/5 pt-3 mt-1" onClick={() => setIsRobotTicked(!isRobotTicked)}>
+                  <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 shrink-0 ${isRobotTicked ? 'bg-white border-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-white/20 group-hover/robot:border-white/40'}`}>
+                    {isRobotTicked && <CheckCircle2 size={14} className="text-black" />}
+                  </div>
+                  <span className={`text-[12px] font-bold tracking-wide transition-colors leading-tight ${isRobotTicked ? 'text-white' : 'text-slate-400'}`}>
+                    Confirm you are not a robot
+                  </span>
+                </div>
+              )}
+
               {/* ACTION EXECUTION SUBMIT BUTTON */}
               <div className="space-y-3 pt-1">
                 <button 
-                  type={(mode === "signup" && step === 1) ? "button" : "submit"}
-                  onClick={(mode === "signup" && step === 1) ? handleNextSlide : undefined}
+                  type={(mode === "signup" && !isMobile && step === 1) ? "button" : "submit"}
+                  onClick={(mode === "signup" && !isMobile && step === 1) ? handleNextSlide : undefined}
                   disabled={
                     (mode === "login" && !isLoginValid) ||
-                    (mode === "signup" && step === 1 && !isSignupStep1Valid) ||
-                    (mode === "signup" && step === 2 && !isSignupStep2Valid) ||
+                    (mode === "signup" && isMobile && !isMobileSignupValid) ||
+                    (mode === "signup" && !isMobile && step === 1 && !isSignupStep1Valid) ||
+                    (mode === "signup" && !isMobile && step === 2 && !isSignupStep2Valid) ||
                     (mode === "forgot" && step === 1 && !isForgotStep1Valid) ||
                     (mode === "forgot" && step === 2 && !isForgotStep2Valid)
                   }
                   className={`w-full py-3.5 rounded-xl font-black uppercase tracking-widest text-[14px] transition-all duration-300 relative overflow-hidden group/btn cursor-pointer
-                  ${((mode === "login" && !isLoginValid) || (mode === "signup" && step === 1 && !isSignupStep1Valid) || (mode === "signup" && step === 2 && !isSignupStep2Valid) || (mode === "forgot" && step === 1 && !isForgotStep1Valid) || (mode === "forgot" && step === 2 && !isForgotStep2Valid)) 
+                  ${((mode === "login" && !isLoginValid) || (mode === "signup" && isMobile && !isMobileSignupValid) || (mode === "signup" && !isMobile && step === 1 && !isSignupStep1Valid) || (mode === "signup" && !isMobile && step === 2 && !isSignupStep2Valid) || (mode === "forgot" && step === 1 && !isForgotStep1Valid) || (mode === "forgot" && step === 2 && !isForgotStep2Valid)) 
                     ? 'bg-white/5 text-slate-600 cursor-not-allowed opacity-40' 
                     : 'bg-white text-black hover:scale-[1.015]'}`}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    {mode === "login" ? "Login to Vault" : mode === "signup" ? (step === 1 ? "Next Step" : "Complete Registration") : (step === 1 ? "Send Reset Code" : "Confirm New Password")} <ArrowRight size={16} />
+                    {mode === "login" ? "Login to Vault" : mode === "signup" ? ((isMobile || step === 2) ? "Complete Registration" : "Next Step") : (step === 1 ? "Send Reset Code" : "Confirm New Password")} <ArrowRight size={16} />
                   </span>
                 </button>
 
