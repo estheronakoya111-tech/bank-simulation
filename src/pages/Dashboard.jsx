@@ -293,8 +293,17 @@ const Dashboard = ({ onLogout, triggerTransfer, triggerBills, triggerPrivacy, tr
 
         {/* CENTRAL HERO COMPONENT UNIT */}
         <div className="z-10 text-center max-w-xl mx-auto my-auto flex flex-col items-center justify-center gap-6">
-          <div className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-center text-white/40 mb-2">
-            <i className="pi pi-cog text-xl animate-spin" style={{ animationDuration: "8s" }} />
+          {/* Populated Security Indicators in Place of Blank Cores */}
+          <div className="flex items-center gap-4 mb-2">
+            <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/15 flex items-center justify-center text-blue-400 shadow-md">
+              <i className="pi pi-shield text-lg" />
+            </div>
+            <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/20 flex items-center justify-center text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
+              <i className="pi pi-cog text-xl animate-spin" style={{ animationDuration: "8s" }} />
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/15 flex items-center justify-center text-purple-400 shadow-md">
+              <i className="pi pi-history text-lg" />
+            </div>
           </div>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tighter uppercase bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent">
             Coming Soon
@@ -372,28 +381,35 @@ const Dashboard = ({ onLogout, triggerTransfer, triggerBills, triggerPrivacy, tr
 
         <main className="flex-grow flex flex-col items-center px-6 lg:px-12 pb-6">
           
-          <div className="w-full max-w-[480px] aspect-[1.8/1] bg-white/[0.02] border border-white/10 backdrop-blur-[50px] rounded-[35px] lg:rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center relative overflow-hidden my-4 lg:my-6 shrink-0">
+          <div className="w-full max-w-[480px] aspect-[1.8/1] bg-white/[0.02] border border-white/15 backdrop-blur-[50px] rounded-[35px] lg:rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center relative overflow-hidden my-4 lg:my-6 shrink-0">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />
-            <p className="text-white/20 text-[7px] lg:text-[8px] tracking-[0.8em] uppercase mb-3 opacity-40 font-black">Secure Capital Access</p>
+            
+            {/* Highly Clear and Visible Capital Access Subtitle Label */}
+            <p className="text-white/60 text-[9px] lg:text-[10px] tracking-[0.6em] uppercase mb-3 opacity-100 font-extrabold drop-shadow-[0_0_4px_rgba(255,255,255,0.15)]">Secure Capital Access</p>
+            
             <div className="flex flex-col items-center relative">
-              <h1 className={`text-white text-4xl lg:text-6xl font-extralight tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all duration-700 ${isStealthActive ? 'blur-xl hover:blur-none cursor-pointer' : ''}`}>
+              {/* Bolder, Premium Cash Display Figures */}
+              <h1 className={`text-white text-4xl lg:text-6xl font-bold tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.35)] transition-all duration-700 ${isStealthActive ? 'blur-xl hover:blur-none cursor-pointer' : ''}`}>
                 {showBalance ? `$${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "****"}
               </h1>
               <button 
                 onClick={() => setShowBalance(!showBalance)}
-                className="absolute -right-10 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors p-2 cursor-pointer"
+                className="absolute -right-12 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors p-2 cursor-pointer"
               >
-                <i className={`pi ${showBalance ? 'pi-eye' : 'pi-eye-slash'} text-xs`} />
+                <i className={`pi ${showBalance ? 'pi-eye' : 'pi-eye-slash'} text-sm font-bold`} />
               </button>
 
               <div className="mt-4 flex flex-col items-center gap-1 group cursor-default">
-                 <p className={`text-white/40 font-mono text-[8px] tracking-[0.5em] uppercase font-bold transition-all duration-700 ${isStealthActive ? 'blur-md' : ''}`}>
+                 {/* High Visibility Node Identity Parameter */}
+                 <p className={`text-white/60 font-mono text-[10px] tracking-[0.4em] uppercase font-black transition-all duration-700 opacity-100 ${isStealthActive ? 'blur-md' : ''}`}>
                     ID: {isMaskActive ? "EST-****-****" : accountNumber}
                  </p>
               </div>
             </div>
-            <div className="absolute bottom-6 lg:bottom-8 left-8 text-white/10 text-[8px] tracking-[0.2em] uppercase font-mono">{isMaskActive ? "Anonymous Node" : username}</div>
-            <div className="absolute top-6 right-8 opacity-10"><i className="pi pi-wifi text-[8px] text-white rotate-90" /></div>
+            
+            {/* Enhanced, High Clarity Identification Tag Lines */}
+            <div className="absolute bottom-6 lg:bottom-8 left-8 text-white/60 text-[10px] tracking-[0.25em] uppercase font-bold font-mono opacity-100">{isMaskActive ? "Anonymous Node" : username}</div>
+            <div className="absolute top-6 right-8 opacity-40"><i className="pi pi-wifi text-[10px] text-white font-bold rotate-90" /></div>
           </div>
 
           <div className="hidden lg:grid grid-cols-7 gap-4 w-full max-w-[900px] mb-8 mt-4">
@@ -497,20 +513,4 @@ const Dashboard = ({ onLogout, triggerTransfer, triggerBills, triggerPrivacy, tr
                      else if (item.n === 'Support Link') { toggleDrawer(); triggerSupport(); }
                      else if (item.n === 'Account Settings') { toggleDrawer(); triggerSettings(); } 
                      else showComingSoon(item.n);
-                   }} className="flex items-center gap-4 group cursor-pointer opacity-75 hover:opacity-100 transition-all">
-                     <i className={`pi ${item.i} text-white font-bold text-base group-hover:text-white`} />
-                     <p className="text-white/70 text-[11px] uppercase tracking-[0.25em] font-bold group-hover:text-white">{item.n}</p>
-                   </div>
-                 ))}
-              </div>
-            </div>
-            <button onClick={handleLogout} className="w-full py-4 border border-red-500/20 bg-red-500/5 text-red-400 text-[10px] tracking-[0.6em] uppercase rounded-2xl hover:bg-red-500/10 transition-all font-bold cursor-pointer">Terminate</button>
-         </div>
-      </div>
-
-      <link rel="stylesheet" href="https://unpkg.com/primeicons/primeicons.css" />
-    </div>
-  );
-};
-
-export default Dashboard;
+                   }} className="flex items
