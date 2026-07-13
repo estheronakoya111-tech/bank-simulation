@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { motion, AnimatePresence } from "framer-motion";
 import { gsap } from "gsap";
 import * as THREE from "three";
@@ -8,10 +9,44 @@ import {
   ShieldCheck, Zap, Layers, Activity as ActivityIcon
 } from "lucide-react";
 
+// --- WEIGHTLESS SILVER CRYSTALLINE DUST ENGINE ---
+function FloatingActivityDust() {
+  const meshRef = useRef();
+  const isMobile = window.innerWidth < 1024;
+  const count = isMobile ? 25 : 55;
+
+  const [positions] = useState(() => {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count * 3; i++) pos[i] = (Math.random() - 0.5) * 40;
+    return pos;
+  });
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      const pos = meshRef.current.geometry.attributes.position.array;
+      for (let i = 1; i < pos.length; i += 3) {
+        pos[i] += 0.015; // Slow upward drift
+        if (pos[i] > 20) pos[i] = -20;
+      }
+      meshRef.current.geometry.attributes.position.needsUpdate = true;
+      meshRef.current.rotation.y = state.clock.getElapsedTime() * 0.05;
+    }
+  });
+
+  return (
+    <points ref={meshRef}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial size={0.12} color="#d1d5db" transparent opacity={0.6} blending={THREE.AdditiveBlending} />
+    </points>
+  );
+}
+
 const Activity = ({ onBack }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [selectedTxn, setSelectedTxn] = useState(null);
   const [filter, setFilter] = useState("all");
 
   const isStealthActive = localStorage.getItem("estra_blur_active") === "true";
@@ -19,7 +54,6 @@ const Activity = ({ onBack }) => {
   
   const mainContainerRef = useRef(null);
   const scrollContainerRef = useRef(null);
-  const threeCanvasRef = useRef(null);
   const cardRefs = useRef([]);
 
   const floatingIconsConfig = [
@@ -40,28 +74,27 @@ const Activity = ({ onBack }) => {
     { Icon: Cpu, left: "80%", size: 30, delay: 12, duration: 33 }
   ];
 
-  // Modified to show only integers during loading animation
-  const countUpAnimation = (element, targetValue, duration = 0.6) => {
+  const scrambleText = (element, targetText, duration = 0.6) => {
     if (!element) return;
-    const numericTarget = parseInt(targetValue.replace(/[^0-9]/g, ''));
-    let start = 0;
-    const startTime = performance.now();
-
-    const animate = (currentTime) => {
-      const elapsed = (currentTime - startTime) / 1000;
-      const progress = Math.min(elapsed / duration, 1);
-      const currentValue = Math.floor(progress * numericTarget);
-      
-      element.innerText = currentValue.toString();
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        element.innerText = targetValue;
-      }
-    };
+    const chars = "0123456789.+$"; // Only numbers for loading animation
+    let iterations = 0;
+    const intervalTime = (duration * 1000) / targetText.length;
     
-    requestAnimationFrame(animate);
+    const interval = setInterval(() => {
+      element.innerText = targetText
+        .split("")
+        .map((char, index) => {
+          if (index < iterations) return targetText[index];
+          return chars[Math.floor(Math.random() * chars.length)];
+        })
+        .join("");
+      
+      if (iterations >= targetText.length) {
+        clearInterval(interval);
+        element.innerText = targetText;
+      }
+      iterations += 1 / 3;
+    }, intervalTime);
   };
 
   const fetchHistory = async () => {
@@ -70,119 +103,128 @@ const Activity = ({ onBack }) => {
       const token = sessionStorage.getItem("estra_token");
       const response = await fetch(`${import.meta.env.VITE_BANK_BACKEND_URL}/history`, {
         method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
       });
-      
       const data = await response.json();
       
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        setHistory([
-          {
-            id: "INIT-001",
-            type: "Deposit",
-            amount: "1000.00",
-            timestamp: "Initial Balance",
-            sender: "System Account",
-            note: "Welcome bonus"
-          }
-        ]);
+      if (!data || !Array.isArray(data) || data.length === 0 || data.message) {
+        setHistory([{
+          id: "TXN-001",
+          type: "Money Received",
+          amount: "1000.00",
+          timestamp: "Account Opened",
+          sender: "Estra Bank",
+          note: "Welcome credit deposited to your account."
+        }]);
       } else {
         const mappedData = data.map((item, index) => {
-          const isDeposit = item.type?.toLowerCase().includes('deposit') || 
-                             item.type?.toLowerCase().includes('received');
-          
+          const rawType = item.type || "";
+          const isIncoming = rawType.toLowerCase().includes('received') || rawType.toLowerCase().includes('deposit');
           return {
-            id: `TXN-${1000 + index}`,
-            type: isDeposit ? "Deposit" : "Withdrawal",
+            id: `TXN-${index}-${Math.floor(Math.random()*1000)}`,
+            type: isIncoming ? "Money Received" : "Money Sent",
             amount: item.amount || "0.00",
             timestamp: item.timestamp || "Today",
-            sender: isDeposit ? "External" : "Your Account",
-            note: item.type || "Standard Transaction"
+            sender: isIncoming ? "Bank Transfer" : "Account Transfer",
+            note: item.type || "Transaction successful."
           };
         });
         setHistory(mappedData);
       }
-    } catch (err) {
-      console.error("Fetch failed", err);
       setLoading(false);
-    } finally {
+    } catch (err) {
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchHistory();
-    // Setup logic for 3D canvas remains standard
+    gsap.fromTo(".intel-panel, .audit-panel", { opacity: 0 }, { opacity: 1, duration: 0.6 });
   }, []);
 
   useEffect(() => {
-    if (!loading) {
-      const cards = document.querySelectorAll(".amount-counter");
-      cards.forEach((card, index) => {
+    if (!loading && filteredHistory.length > 0) {
+      const cards = document.querySelectorAll(".txn-amount-text");
+      cards.forEach((card) => {
         const finalValue = card.getAttribute("data-final-value");
-        setTimeout(() => {
-          countUpAnimation(card, finalValue);
-        }, index * 100);
+        scrambleText(card, finalValue, 0.5);
       });
     }
-  }, [loading, filter]);
+  }, [loading, filter, history]);
+
+  const handleCardMouseMove = (e, index) => {
+    const card = cardRefs.current[index];
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const angleX = (rect.height / 2 - y) / 20;
+    const angleY = (x - rect.width / 2) / 20;
+    gsap.to(card, { transform: `perspective(600px) rotateX(${angleX}deg) rotateY(${angleY}deg)`, duration: 0.3 });
+  };
+
+  const handleCardMouseLeave = (index) => {
+    const card = cardRefs.current[index];
+    if (!card) return;
+    gsap.to(card, { transform: "perspective(600px) rotateX(0deg) rotateY(0deg)", duration: 0.4 });
+  };
+
+  const filteredHistory = history.filter(item => {
+    if (filter === "all") return true;
+    if (filter === "received") return item.type === "Money Received";
+    if (filter === "sent") return item.type === "Money Sent";
+    return true;
+  });
 
   return (
-    <div ref={mainContainerRef} className="min-h-screen w-full bg-[#020408] text-white flex flex-col items-center">
-      <canvas ref={threeCanvasRef} className="absolute inset-0 z-0" />
+    <div ref={mainContainerRef} className="min-h-screen w-full bg-[#020408] text-white flex flex-col items-center relative overflow-hidden font-sans z-10">
       
-      <header className="w-full max-w-7xl flex justify-between items-center px-8 py-8 z-50">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10">
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold uppercase tracking-tight">Transaction History</h1>
-            <p className="text-xs text-neutral-500 uppercase">View your account activity</p>
-          </div>
-        </div>
+      {/* WEIGHTLESS THREE.JS BACKGROUND */}
+      <div className="absolute inset-0 z-0">
+        <Canvas>
+          <Suspense fallback={null}><FloatingActivityDust /></Suspense>
+        </Canvas>
+      </div>
 
-        <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
-          {['all', 'deposit', 'withdrawal'].map((f) => (
-            <button 
-              key={f} 
-              onClick={() => setFilter(f)} 
-              className={`px-6 py-2 rounded-lg text-xs font-bold uppercase ${filter === f ? 'bg-white text-black' : 'text-white/50'}`}
-            >
+      <header className="w-full max-w-7xl flex gap-4 justify-between items-center px-6 py-8 z-50">
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 cursor-pointer">
+            <ArrowLeft size={16} />
+          </button>
+          <h1 className="text-xl font-bold uppercase tracking-widest">Transactions</h1>
+        </div>
+        <div className="flex bg-white/5 p-1 rounded-xl">
+          {['all', 'received', 'sent'].map((f) => (
+            <button key={f} onClick={() => setFilter(f)} className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase ${filter === f ? 'bg-white text-black' : 'text-white/50'}`}>
               {f}
             </button>
           ))}
         </div>
       </header>
 
-      <main className="w-full max-w-7xl px-8 py-6 z-10 flex flex-col gap-6">
-        {loading ? (
-          <div className="text-center">Loading transactions...</div>
-        ) : (
-          history.map((txn, index) => (
-            <div key={txn.id} className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl flex justify-between items-center hover:border-white/20 transition-all">
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl ${txn.type === 'Deposit' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-white'}`}>
-                  {txn.type === 'Deposit' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
-                </div>
-                <div>
-                  <h3 className="font-bold">{txn.type}</h3>
-                  <p className="text-xs text-neutral-400">{txn.sender} • {txn.timestamp}</p>
-                </div>
-              </div>
-              <div 
-                className={`text-xl font-mono amount-counter ${isStealthActive ? 'blur-sm' : ''}`}
-                data-final-value={`${txn.type === 'Deposit' ? "+" : "-"}${txn.amount}`}
-              >
-                0
-              </div>
+      <main className="w-full max-w-7xl flex flex-grow gap-6 px-6 py-6 z-20">
+        <section className="w-full lg:flex-grow space-y-3">
+          {loading ? <div className="text-center">Syncing...</div> : filteredHistory.map((txn, index) => (
+            <div key={txn.id} ref={(el) => (cardRefs.current[index] = el)} onMouseMove={(e) => handleCardMouseMove(e, index)} onMouseLeave={() => handleCardMouseLeave(index)} onClick={() => setSelectedTxn(txn)} className="p-6 bg-white/5 border border-white/5 rounded-3xl flex justify-between items-center cursor-pointer hover:bg-white/10 transition-all">
+               <div>
+                 <p className="text-[10px] text-white/50">{txn.timestamp}</p>
+                 <h3 className="text-sm font-bold">{txn.sender}</h3>
+               </div>
+               <p className="text-sm font-mono txn-amount-text" data-final-value={`${txn.type === 'Money Received' ? "+" : "-"}${txn.amount}`}>{txn.amount}</p>
             </div>
-          ))
-        )}
+          ))}
+        </section>
       </main>
+
+      {selectedTxn && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+           <div className="w-full max-w-sm bg-[#03050a] p-8 rounded-[40px] border border-white/10">
+              <h2 className="text-2xl font-bold mb-4">{selectedTxn.amount}</h2>
+              <p className="text-white/50 mb-6">{selectedTxn.note}</p>
+              <button onClick={() => setSelectedTxn(null)} className="w-full py-3 bg-white text-black rounded-xl font-bold text-xs uppercase">Close</button>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
