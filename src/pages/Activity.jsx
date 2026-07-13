@@ -8,6 +8,25 @@ import {
   ShieldCheck, Zap, Layers, Activity as ActivityIcon
 } from "lucide-react";
 
+// --- EXPANDED 3D VAULT RING COMPONENT FOR DESKTOP LOG VIEWS ---
+function CoreVaultMesh() {
+  const meshRef = useRef();
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y = state.clock.getElapsedTime() * 0.3;
+      meshRef.current.rotation.x = state.clock.getElapsedTime() * 0.15;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef}>
+      <torusGeometry args={[1.1, 0.15, 16, 100]} />
+      <meshStandardMaterial color="#ffffff" wireframe={true} transparent opacity={0.3} />
+    </mesh>
+  );
+}
+
 const Activity = ({ onBack }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,9 +60,10 @@ const Activity = ({ onBack }) => {
     { Icon: Cpu, left: "80%", size: 30, delay: 12, duration: 33 }
   ];
 
+  // SCRAMBLE LOGIC FIXED: Cycles exclusively through currency symbols and integers
   const scrambleText = (element, targetText, duration = 0.6) => {
     if (!element) return;
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789X_$%#@";
+    const chars = "0123456789.+$";
     let iterations = 0;
     const intervalTime = (duration * 1000) / targetText.length;
     
@@ -83,11 +103,11 @@ const Activity = ({ onBack }) => {
         setHistory([
           {
             id: "EST-TXN-INIT-SYSTEM-CORE",
-            type: "Incoming Flux",
+            type: "Money Received",
             amount: "1000.00",
-            timestamp: "SYSTEM_INIT",
-            sender: "ESTRA_CORE_NODE",
-            note: "Welcome Bonus Allocation Locked to Node Architecture"
+            timestamp: "Account Opened",
+            sender: "Estra Welcoming Vault",
+            note: "Welcome bonus funds automatically unlocked and credited."
           }
         ]);
       } else {
@@ -99,11 +119,11 @@ const Activity = ({ onBack }) => {
           
           return {
             id: `EST-TXN-${index}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-            type: isIncoming ? "Incoming Flux" : "Outgoing Flux",
+            type: isIncoming ? "Money Received" : "Money Sent",
             amount: item.amount || "0.00",
-            timestamp: item.timestamp || "Live Sync",
-            sender: isIncoming ? "External Node" : "ESTRA_VAULT_CORE",
-            note: item.type || "Secure Vault Transmission Verified"
+            timestamp: item.timestamp || "Live Update",
+            sender: isIncoming ? "Received Funds" : "Sent Funds",
+            note: item.type || "Secure Bank Transaction Completed Successfully"
           };
         });
         setHistory(mappedData);
@@ -114,11 +134,11 @@ const Activity = ({ onBack }) => {
       setHistory([
         {
           id: "EST-TXN-INIT-SYSTEM-CORE",
-          type: "Incoming Flux",
+          type: "Money Received",
           amount: "1000.00",
-          timestamp: "SYSTEM_INIT",
-          sender: "ESTRA_CORE_NODE",
-          note: "Welcome Bonus Allocation Locked to Node Architecture"
+          timestamp: "Account Opened",
+          sender: "Estra Welcoming Vault",
+          note: "Welcome bonus funds automatically unlocked and credited."
         }
       ]);
       setLoading(false);
@@ -145,7 +165,8 @@ const Activity = ({ onBack }) => {
     renderer.setSize(width, height);
     renderer.setPixelRatio(1); 
 
-    const particleCount = 100; 
+    // Dynamic Matrix Scaling: 28 particles on mobile, 120 on large screens
+    const particleCount = window.innerWidth < 1024 ? 28 : 120; 
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
 
@@ -159,9 +180,9 @@ const Activity = ({ onBack }) => {
 
     const material = new THREE.PointsMaterial({
       color: 0xffffff,
-      size: 0.25,
+      size: window.innerWidth < 1024 ? 0.4 : 0.25,
       transparent: true,
-      opacity: 0.2, 
+      opacity: window.innerWidth < 1024 ? 0.35 : 0.2, 
       blending: THREE.AdditiveBlending
     });
 
@@ -257,8 +278,8 @@ const Activity = ({ onBack }) => {
 
   const filteredHistory = history.filter(item => {
     if (filter === "all") return true;
-    if (filter === "received") return item.type === "Incoming Flux";
-    if (filter === "sent") return item.type === "Outgoing Flux";
+    if (filter === "received") return item.type === "Money Received";
+    if (filter === "sent") return item.type === "Money Sent";
     return true;
   });
 
@@ -295,14 +316,14 @@ const Activity = ({ onBack }) => {
       {/* HEADER SECTION - FULLY RESPONSIVE */}
       <header className="w-full max-w-7xl flex flex-col sm:flex-row gap-4 justify-between items-center px-4 sm:px-8 py-6 sm:py-8 z-50 sticky top-0 bg-[#020408]/60 backdrop-blur-xl border-b border-white/[0.04]">
         <div className="flex items-center gap-4 w-full sm:w-auto">
-          <button onClick={onBack} className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/[0.01] border border-white/5 flex items-center justify-center hover:bg-white/10 hover:border-white/30 transition-all duration-300 group shadow-lg shrink-0">
+          <button onClick={onBack} className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/[0.01] border border-white/5 flex items-center justify-center hover:bg-white/10 hover:border-white/30 transition-all duration-300 group shadow-lg shrink-0 cursor-pointer">
             <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-300" />
           </button>
           <div>
             <h1 className="text-xl sm:text-2xl font-black italic tracking-tighter uppercase bg-gradient-to-r from-white via-neutral-200 to-neutral-400 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(255,255,255,0.35)]">
-              Activity <span className="text-neutral-400 font-light font-sans not-italic">Terminal</span>
+              Transaction <span className="text-neutral-400 font-light font-sans not-italic">History</span>
             </h1>
-            <p className="text-[8px] text-neutral-300 font-mono tracking-[0.4em] uppercase mt-0.5">ESTRA_NETWORK_SYNC</p>
+            <p className="text-[8px] text-neutral-300 font-mono tracking-[0.4em] uppercase mt-0.5">Estra Bank Network Sync</p>
           </div>
         </div>
 
@@ -311,13 +332,13 @@ const Activity = ({ onBack }) => {
             <button 
               key={f} 
               onClick={() => setFilter(f)} 
-              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg sm:rounded-xl text-[9px] uppercase font-black tracking-widest transition-all duration-300 ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg sm:rounded-xl text-[9px] uppercase font-black tracking-widest transition-all duration-300 cursor-pointer ${
                 filter === f 
                   ? 'bg-gradient-to-b from-white via-neutral-100 to-neutral-300 text-black shadow-[0_0_20px_rgba(255,255,255,0.25)]' 
                   : 'text-white/40 hover:text-white/70'
               }`}
             >
-              {f === 'all' ? 'All' : f === 'received' ? 'Inflow' : 'Outflow'}
+              {f === 'all' ? 'All Transactions' : f === 'received' ? 'Inflow' : 'Outflow'}
             </button>
           ))}
         </div>
@@ -341,7 +362,7 @@ const Activity = ({ onBack }) => {
               <div className="flex justify-between items-center">
                 <span className="text-white/30 uppercase tracking-wider">Sync Status</span>
                 <span className="text-emerald-400 flex items-center gap-1.5 bg-emerald-500/5 px-2.5 py-1 rounded-md border border-emerald-500/10 text-[10px]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> UPDATED
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> LIVE_SYNC
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -354,10 +375,10 @@ const Activity = ({ onBack }) => {
           </div>
 
           <div className="p-6 sm:p-8 rounded-[24px] sm:rounded-[35px] border border-white/[0.03] bg-black/30 flex flex-col justify-between shadow-2xl lg:h-full">
-             <p className="text-[10px] text-white/40 uppercase font-mono leading-relaxed tracking-wider space-y-1">
-               • Connection: Live and Secure<br/>
-               • App State: Stable<br/>
-               • Security Layer: Active
+             <p className="text-[10px] text-white/50 uppercase font-mono leading-relaxed tracking-wider space-y-1">
+               • Connection Status: Secure<br/>
+               • Application Core: Stable<br/>
+               • Vault Protection: Operational
              </p>
              <div className="w-2 h-2 rounded-full bg-white/30 animate-pulse self-end mt-4 hidden lg:block" />
           </div>
@@ -378,7 +399,7 @@ const Activity = ({ onBack }) => {
             ) : (
               <AnimatePresence mode="popLayout">
                 {filteredHistory.map((txn, index) => {
-                  const isIncoming = txn.type === 'Incoming Flux';
+                  const isIncoming = txn.type === 'Money Received';
                   return (
                     <motion.div 
                       key={txn.id}
@@ -411,7 +432,7 @@ const Activity = ({ onBack }) => {
                               <div className="min-w-0">
                                 <p className="text-[8px] text-white/30 uppercase tracking-[0.2em] mb-0.5 font-mono truncate">{txn.timestamp}</p>
                                 <h3 className="text-xs sm:text-sm font-bold tracking-tight text-white/90 uppercase truncate">
-                                  {isMaskActive ? "Hidden Balance" : txn.sender}
+                                  {isMaskActive ? "Hidden Profile Access" : txn.sender}
                                 </h3>
                               </div>
                            </div>
@@ -438,12 +459,12 @@ const Activity = ({ onBack }) => {
           <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-[#020408] to-transparent pointer-events-none z-10" />
         </section>
 
-        {/* RIGHT AUDIT RECEIPT PANEL */}
+        {/* RIGHT WEIGHTLESS 3D MONITOR FRAMEWORK */}
         <aside className="audit-panel w-full lg:w-1/4 flex flex-col shrink-0 hidden lg:flex">
           <div className="p-8 rounded-[35px] border border-white/[0.04] bg-gradient-to-b from-white/[0.01] to-transparent backdrop-blur-3xl h-full flex flex-col justify-between shadow-2xl relative">
              <div className="flex-grow flex flex-col">
                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mb-8 flex items-center gap-2 border-b border-white/[0.04] pb-4">
-                 <Fingerprint size={14} className="text-white/50" /> Receipt Details
+                 <Fingerprint size={14} className="text-white/50" /> Receipt Specifications
                </h4>
                
                <AnimatePresence mode="wait">
@@ -457,33 +478,42 @@ const Activity = ({ onBack }) => {
                      className="space-y-6"
                    >
                       <div className="space-y-1.5">
-                         <p className="text-[9px] uppercase tracking-widest text-white/30 font-mono">Reference ID</p>
+                         <p className="text-[9px] uppercase tracking-widest text-white/30 font-mono">Reference Code</p>
                          <p className="text-[11px] font-mono text-white break-all uppercase bg-white/5 p-2 rounded-xl border border-white/10 leading-normal">{selectedTxn.id}</p>
                       </div>
                       <div className="space-y-1.5">
-                         <p className="text-[9px] uppercase tracking-widest text-white/30 font-mono">Transaction Type</p>
-                         <p className={`text-[11px] font-mono font-bold uppercase tracking-wider ${selectedTxn.type === 'Incoming Flux' ? 'text-emerald-400' : 'text-neutral-300'}`}>
-                           {selectedTxn.type === 'Incoming Flux' ? 'Inflow' : 'Outflow'}
+                         <p className="text-[9px] uppercase tracking-widest text-white/30 font-mono">Transfer Method</p>
+                         <p className={`text-[11px] font-mono font-bold uppercase tracking-wider ${selectedTxn.type === 'Money Received' ? 'text-emerald-400' : 'text-neutral-300'}`}>
+                           {selectedTxn.type === 'Money Received' ? 'Inflow' : 'Outflow'}
                          </p>
                       </div>
                       <div className="space-y-1.5">
-                         <p className="text-[9px] uppercase tracking-widest text-white/30 font-mono">Description</p>
+                         <p className="text-[9px] uppercase tracking-widest text-white/30 font-mono">Description Status</p>
                          <p className="text-[11px] text-white/60 font-sans leading-relaxed border-l border-white/20 pl-3 py-0.5 bg-white/[0.005]">
                            {selectedTxn.note}
                          </p>
                       </div>
                    </motion.div>
                  ) : (
-                   <div className="flex flex-col items-center justify-center h-48 border border-dashed border-white/10 rounded-3xl opacity-50">
-                      <Database className="text-white/20 mb-3" size={24} />
-                      <p className="text-[9px] text-white/30 uppercase tracking-[0.2em] font-mono">Select a transaction</p>
+                   /* Sharp Weightless 3D geometric container replacing hacker hashing blocks */
+                   <div className="flex-grow flex flex-col items-center justify-center h-48 border border-white/[0.03] bg-white/[0.01] rounded-3xl relative overflow-hidden">
+                      <div className="w-full h-[180px] pointer-events-none select-none">
+                        <Canvas camera={{ position: [0, 0, 3] }}>
+                          <ambientLight intensity={0.5} />
+                          <directionalLight position={[5, 5, 5]} intensity={1.2} />
+                          <Suspense fallback={null}>
+                            <CoreVaultMesh />
+                          </Suspense>
+                        </Canvas>
+                      </div>
+                      <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] font-mono absolute bottom-4">Select Item to View</p>
                    </div>
                  )}
                </AnimatePresence>
              </div>
 
-             <button onClick={onBack} className="w-full py-4 bg-gradient-to-b from-white via-neutral-200 to-neutral-400 text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:brightness-110 active:scale-[0.99] transition-all shadow-xl shadow-black/40 mt-6">
-               Return to Core
+             <button onClick={onBack} className="w-full py-4 bg-gradient-to-b from-white via-neutral-200 to-neutral-400 text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:brightness-110 active:scale-[0.99] transition-all shadow-xl shadow-black/40 mt-6 cursor-pointer">
+               Return to Vault
              </button>
           </div>
         </aside>
@@ -494,25 +524,25 @@ const Activity = ({ onBack }) => {
         {selectedTxn && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl lg:hidden">
              <motion.div initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40 }} className="w-full max-w-sm bg-[#03050a] border border-white/15 p-6 sm:p-8 rounded-[30px] sm:rounded-[40px] relative shadow-2xl">
-                <button onClick={() => setSelectedTxn(null)} className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                <button onClick={() => setSelectedTxn(null)} className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center cursor-pointer">
                   <X size={14} />
                 </button>
                 
                 <div className="text-center mb-6 sm:mb-8">
-                   <h2 className={`text-2xl sm:text-3xl font-light font-mono tracking-tighter mb-1 ${selectedTxn.type === 'Incoming Flux' ? 'text-emerald-400' : 'text-neutral-300'}`}>
-                     {selectedTxn.type === 'Incoming Flux' ? "+" : "-"}${parseFloat(selectedTxn.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                   <h2 className={`text-2xl sm:text-3xl font-light font-mono tracking-tighter mb-1 ${selectedTxn.type === 'Money Received' ? 'text-emerald-400' : 'text-neutral-300'}`}>
+                     {selectedTxn.type === 'Money Received' ? "+" : "-"}${parseFloat(selectedTxn.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                    </h2>
-                   <p className="text-white/40 text-[8px] uppercase tracking-[0.3em] font-mono">{selectedTxn.type === 'Incoming Flux' ? 'Inflow' : 'Outflow'}</p>
+                   <p className="text-white/40 text-[8px] uppercase tracking-[0.3em] font-mono">{selectedTxn.type === 'Money Received' ? 'Inflow' : 'Outflow'}</p>
                 </div>
 
                 <div className="space-y-4 border-t border-white/5 pt-5 mb-6 sm:mb-8 text-[11px] font-mono">
                    <div className="flex justify-between items-center gap-4"><span className="text-white/30 text-[9px] uppercase shrink-0">Reference</span><span className="text-white/70 truncate">{selectedTxn.id}</span></div>
-                   <div className="flex justify-between items-center gap-4"><span className="text-white/30 text-[9px] uppercase shrink-0">Sender</span><span className="text-white/90 truncate">{isMaskActive ? "Hidden Balance" : selectedTxn.sender}</span></div>
+                   <div className="flex justify-between items-center gap-4"><span className="text-white/30 text-[9px] uppercase shrink-0">Sender Description</span><span className="text-white/90 truncate">{isMaskActive ? "Hidden Information" : selectedTxn.sender}</span></div>
                    <div className="flex flex-col gap-1 border-t border-white/5 pt-3"><span className="text-white/30 text-[9px] uppercase">Details</span><span className="text-white/70 font-sans leading-relaxed">{selectedTxn.note}</span></div>
                 </div>
                 
-                <button onClick={() => setSelectedTxn(null)} className="w-full py-3.5 bg-white/5 border border-white/10 rounded-xl font-bold text-[10px] text-white uppercase tracking-[0.2em]">
-                  Close View
+                <button onClick={() => setSelectedTxn(null)} className="w-full py-3.5 bg-white/5 border border-white/10 rounded-xl font-bold text-[10px] text-white uppercase tracking-[0.2em] cursor-pointer">
+                  Close Details
                 </button>
              </motion.div>
           </motion.div>
