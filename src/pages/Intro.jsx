@@ -76,9 +76,12 @@ const Intro = ({ onFinish }) => {
           <span data-animate-text className="text-white block">
             Welcome to
           </span>
-          <span data-animate-text className="block mt-2 bg-gradient-to-b from-[#1a1a1a] to-black bg-clip-text text-transparent drop-shadow-[0_2px_2px_rgba(255,255,255,0.2)]">
-            Estra Banking
-          </span>
+          <span
+  data-animate-text
+  className="block mt-2 bg-gradient-to-b from-[#1A2350] to-[#0B1026] bg-clip-text text-transparent drop-shadow-[0_2px_2px_rgba(59,130,246,0.25)]"
+>
+  Estra Banking
+</span>
         </h1>
 
         <p data-animate-text className="text-lg sm:text-xl font-light italic tracking-widest text-neutral-300">
