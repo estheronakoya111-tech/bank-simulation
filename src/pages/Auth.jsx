@@ -1,34 +1,49 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Points, PointMaterial } from "@react-three/drei";
 import * as THREE from "three";
 import { gsap } from "gsap";
-import { Shield, Lock, Landmark, Wallet, CheckCircle2, User, Mail, Eye, EyeOff, ArrowRight, Activity, Cpu, Globe, Zap } from "lucide-react";
+import { Shield, Lock, Landmark, Wallet, CheckCircle2, User, Mail, Eye, EyeOff, ArrowRight, Activity, Cpu, Globe, Zap, Key } from "lucide-react";
 
-// --- 1. NEBULA BACKGROUND ---
+// --- 1. RESPONSIVE NEBULA BACKGROUND ---
 function NebulaDust() {
   const ref = useRef();
+  const { size } = useThree();
+  
   const [points] = useState(() => {
-    const p = new Float32Array(2000 * 3);
-    for (let i = 0; i < 2000 * 3; i++) p[i] = (Math.random() - 0.5) * 10;
+    const count = size.width < 768 ? 600 : 2000;
+    const p = new Float32Array(count * 3);
+    const spread = size.width < 768 ? 7 : 10;
+    for (let i = 0; i < count * 3; i++) {
+      p[i] = (Math.random() - 0.5) * spread;
+    }
     return p;
   });
+
   useFrame((state, delta) => {
     if (ref.current) {
-      ref.current.rotation.y += delta * 0.05;
-      ref.current.rotation.x += delta * 0.02;
+      ref.current.rotation.y += delta * 0.03;
+      ref.current.rotation.x += delta * 0.01;
     }
   });
+
   return (
     <Points ref={ref} positions={points} stride={3}>
-      <PointMaterial transparent color="#4a90e2" size={0.02} sizeAttenuation opacity={0.3} blending={THREE.AdditiveBlending} />
+      <PointMaterial 
+        transparent 
+        color="#a0aec0" 
+        size={size.width < 768 ? 0.03 : 0.015} 
+        sizeAttenuation 
+        opacity={size.width < 768 ? 0.4 : 0.25} 
+        blending={THREE.AdditiveBlending} 
+      />
     </Points>
   );
 }
 
 const Auth = ({ onAuthSuccess }) => {
   // --- BACKEND & UI STATE ---
-  const [mode, setMode] = useState("login");
+  const [mode, setMode] = useState("login"); // "login" | "signup" | "forgot"
   const [step, setStep] = useState(1); 
   const [isTicked, setIsTicked] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
@@ -36,14 +51,18 @@ const Auth = ({ onAuthSuccess }) => {
   // PASSWORD VISIBILITY SEPARATE TOGGLES
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     username: "",
     password: "",
     email: "",
-    fullName: ""
+    fullName: "",
+    otpCode: "",
+    newPassword: ""
   });
 
+  const containerRef = useRef(null);
   const capsuleRef = useRef(null);
   const iconRef = useRef([]);
 
@@ -60,196 +79,303 @@ const Auth = ({ onAuthSuccess }) => {
   const isLoginValid = formData.username.trim() !== "" && formData.password.trim() !== "";
   const isSignupStep1Valid = formData.fullName.trim() !== "" && formData.email.trim().includes("@");
   const isSignupStep2Valid = formData.username.trim() !== "" && formData.password.length >= 8 && isTicked;
+  const isForgotStep1Valid = formData.email.trim().includes("@");
+  const isForgotStep2Valid = formData.otpCode.trim() !== "" && formData.newPassword.length >= 8;
+
+  // --- PREMIUM STATIONARY DISSOLVE TIMELINE ---
+  const handleTransitionFade = (stateUpdateCallback) => {
+    gsap.to(".input-group, .form-header-labels", {
+      opacity: 0,
+      y: -5,
+      duration: 0.2,
+      ease: "power2.in",
+      onComplete: () => {
+        stateUpdateCallback();
+        gsap.to(".input-group, .form-header-labels", {
+          opacity: 1,
+          y: 0,
+          duration: 0.3,
+          ease: "power2.out"
+        });
+      }
+    });
+  };
 
   // --- HANDLERS (BACKEND INTEGRATION) ---
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    setStatusMsg("Synchronizing...");
+    setStatusMsg("Connecting...");
     
-    const endpoint = mode === "login" ? "/login" : "/register";
+    let endpoint = "";
+    let payload = {};
+
+    if (mode === "login") {
+      endpoint = "/login";
+      payload = { username: formData.username, password: formData.password };
+    } else if (mode === "signup") {
+      endpoint = "/register";
+      payload = { username: formData.username, email: formData.email, password: formData.password };
+    } else if (mode === "forgot" && step === 1) {
+      endpoint = "/forgot-password";
+      payload = { email: formData.email };
+    } else if (mode === "forgot" && step === 2) {
+      endpoint = "/reset-password";
+      payload = { email: formData.email, code: formData.otpCode, new_password: formData.newPassword };
+    }
     
     try {
-      // Updated to use the environment variable
       const response = await fetch(`${import.meta.env.VITE_BANK_BACKEND_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         if (mode === "login") {
-          // Add token persistence if returned
           if (data.token) sessionStorage.setItem("estra_token", data.token);
           
           if (formData.username === "EstherAdmin") {
-            setStatusMsg("Admin Identity Detected. Awaiting OTP...");
+            setStatusMsg("Admin profile verified. Checking your code...");
           } else {
-            setStatusMsg("Security Code Sent to Email...");
+            setStatusMsg("Signing you in... Checking your code...");
           }
           setTimeout(() => { onAuthSuccess(formData.username); }, 1500);
-        } else {
-          setStatusMsg("Access Created. Switching to Login...");
+        } else if (mode === "signup") {
+          setStatusMsg("Account created successfully! Loading sign in view...");
           setTimeout(() => {
-            setMode("login");
-            setStep(1);
-            setStatusMsg("");
-          }, 2000);
+            handleTransitionFade(() => {
+              setMode("login");
+              setStep(1);
+              setStatusMsg("");
+            });
+          }, 1500);
+        } else if (mode === "forgot" && step === 1) {
+          setStatusMsg("Sending your code... Check your email.");
+          setTimeout(() => {
+            handleTransitionFade(() => {
+              setStep(2);
+              setStatusMsg("");
+            });
+          }, 1500);
+        } else if (mode === "forgot" && step === 2) {
+          setStatusMsg("Password updated successfully!");
+          setTimeout(() => {
+            handleTransitionFade(() => {
+              setMode("login");
+              setStep(1);
+              setStatusMsg("");
+            });
+          }, 1500);
         }
       } else {
-        setStatusMsg(data.message || "Access Denied.");
+        setStatusMsg(data.message || "Invalid details. Please try again.");
       }
     } catch (error) {
-      setStatusMsg("Connection Failed.");
+      setStatusMsg("Connection lost. Please check your network.");
     }
   };
 
-  // --- UI ANIMATIONS ---
+  // --- UI KINETIC GSAP DRIFT SYSTEMS ---
   useEffect(() => {
     const ctx = gsap.context(() => {
       gsap.fromTo(capsuleRef.current, 
-        { scale: 0.95, opacity: 0, y: 30 }, 
-        { scale: 1, opacity: 1, y: 0, duration: 1.5, ease: "expo.out" }
+        { scale: 0.98, opacity: 0 }, 
+        { scale: 1, opacity: 1, duration: 0.8, ease: "power3.out" }
       );
+
       iconRef.current.forEach((el, i) => {
         if (el) {
           gsap.to(el, {
-            y: "random(-30, 30)",
-            x: "random(-30, 30)",
-            duration: "random(4, 7)",
+            y: "random(-20, 20)",
+            x: "random(-20, 20)",
+            duration: "random(6, 9)",
             repeat: -1, yoyo: true, ease: "sine.inOut"
           });
         }
       });
     });
+
     return () => ctx.revert();
-  }, [mode]);
+  }, []);
 
   const handleNextSlide = () => {
     if (!isSignupStep1Valid) return;
-    gsap.to(".input-group", {
-      opacity: 0, y: -10, duration: 0.3,
-      onComplete: () => {
-        setStep(2);
-        gsap.fromTo(".input-group", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4 });
-      }
+    handleTransitionFade(() => {
+      setStep(2);
     });
   };
 
   const toggleAuth = () => {
-    setMode(mode === "login" ? "signup" : "login");
-    setStep(1);
-    setIsTicked(false);
-    setStatusMsg("");
-    setShowLoginPassword(false);
-    setShowSignupPassword(false);
-    setFormData({ username: "", password: "", email: "", fullName: "" });
+    handleTransitionFade(() => {
+      setMode(mode === "login" ? "signup" : "login");
+      setStep(1);
+      setIsTicked(false);
+      setStatusMsg("");
+      setShowLoginPassword(false);
+      setShowSignupPassword(false);
+      setShowResetPassword(false);
+      setFormData({ username: "", password: "", email: "", fullName: "" , otpCode: "", newPassword: "" });
+    });
+  };
+
+  const switchToForgot = () => {
+    handleTransitionFade(() => {
+      setMode("forgot");
+      setStep(1);
+      setStatusMsg("");
+      setFormData({ username: "", password: "", email: "", fullName: "", otpCode: "", newPassword: "" });
+    });
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-[#010206] text-white selection:bg-silver/30 overflow-hidden font-sans">
+    <div ref={containerRef} className="smooth-scroll-container relative min-h-screen w-full bg-[#010206] text-white selection:bg-white/20 overflow-x-hidden font-sans">
       
       {/* 3D BACKGROUND */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Canvas camera={{ position: [0, 0, 5] }}>
           <Suspense fallback={null}><NebulaDust /></Suspense>
         </Canvas>
-        <div className="absolute inset-0 bg-gradient-to-tr from-blue-950/20 via-transparent to-black" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-blue-950/30 via-transparent to-black" />
       </div>
 
-      {/* FLOATING ICONS (MOBILE/MEDIUM) */}
-      <div className="lg:hidden absolute inset-0 z-5 pointer-events-none">
-        {[Shield, Lock, Activity, Cpu, Globe, Zap, Wallet, Landmark].map((Icon, idx) => (
+      {/* 16 FLOWING ATMOSPHERIC SILVER DECORATIONS */}
+      <div className="absolute inset-0 z-5 pointer-events-none overflow-hidden">
+        {[
+          Shield, Lock, Activity, Cpu, Globe, Zap, Wallet, Landmark,
+          Shield, Lock, Activity, Cpu, Globe, Zap, Wallet, Landmark
+        ].map((Icon, idx) => (
           <div 
             key={idx}
             ref={el => iconRef.current[idx] = el}
-            className="absolute opacity-30 text-silver/80 drop-shadow-[0_0_8px_rgba(74,144,226,0.3)]"
-            style={{ top: `${15 + (idx * 10)}%`, left: `${(idx % 2 === 0 ? 10 : 80)}%` }}
+            className="absolute opacity-10 lg:opacity-20 text-slate-400 drop-shadow-[0_0_6px_rgba(255,255,255,0.15)] transition-opacity"
+            style={{ 
+              top: `${6 + (idx * 5.8)}%`, 
+              left: `${(idx % 2 === 0 ? 3 + (idx * 0.4) : 93 - (idx * 0.4))}%` 
+            }}
           >
-            <Icon size={idx % 2 === 0 ? 25 : 40} strokeWidth={1} />
+            <Icon size={idx % 3 === 0 ? 24 : idx % 3 === 1 ? 32 : 40} strokeWidth={1.2} />
           </div>
         ))}
       </div>
 
-      <div className="relative z-10 flex flex-col lg:flex-row h-screen w-full">
+      <div className="relative z-10 flex flex-col lg:flex-row min-h-screen w-full">
         
-        {/* --- DESKTOP 60% SIDE --- */}
-        <div className="hidden lg:flex w-3/5 relative flex-col justify-center items-center p-12">
-          <svg className="absolute inset-0 w-full h-full opacity-40 pointer-events-none" viewBox="0 0 800 600">
-            <path d="M 150 200 Q 400 120 650 200" stroke="silver" fill="none" strokeWidth="0.5" strokeDasharray="4,4" />
-            <path d="M 150 400 Q 400 480 650 400" stroke="silver" fill="none" strokeWidth="0.5" strokeDasharray="4,4" />
+        {/* --- DESKTOP HERO SIDE (Dynamic Responsive layout for Standard Laptops) --- */}
+        <div className="hidden lg:flex lg:w-[55%] xl:w-3/5 relative flex-col justify-center items-center p-6 xl:p-12 select-none">
+          <svg className="absolute inset-0 w-full h-full opacity-20 pointer-events-none" viewBox="0 0 800 600">
+            <path d="M 150 200 Q 400 120 650 200" stroke="silver" fill="none" strokeWidth="0.75" strokeDasharray="6,6" />
+            <path d="M 150 400 Q 400 480 650 400" stroke="silver" fill="none" strokeWidth="0.75" strokeDasharray="6,6" />
           </svg>
 
           <div className="relative flex flex-col items-center text-center">
-            <div className="absolute -top-32 animate-pulse"><Lock className="text-silver/60 drop-shadow-[0_0_10px_silver]" size={35} /></div>
-            <div className="absolute -left-56 top-0"><Shield className="text-silver/60 drop-shadow-[0_0_10px_silver]" size={35} /></div>
-            <div className="absolute -right-56 top-0"><Wallet className="text-silver/60 drop-shadow-[0_0_10px_silver]" size={35} /></div>
-            <div className="absolute -bottom-24 -left-20"><Landmark className="text-silver/60 drop-shadow-[0_0_10px_silver]" size={35} /></div>
-            <div className="absolute -bottom-24 -right-20"><Activity className="text-silver/60 drop-shadow-[0_0_10px_silver]" size={35} /></div>
-
-            <h1 className="text-[10rem] font-black tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-silver to-gray-700 drop-shadow-[0_10px_40px_rgba(255,255,255,0.25)]">
+            <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-7xl xl:text-[9rem] font-black tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-300 to-slate-600 drop-shadow-[0_15px_40px_rgba(255,255,255,0.15)]">
               ESTRA
             </h1>
-            <p className="mt-4 text-silver/40 tracking-[0.7em] uppercase text-xs font-bold font-mono">Enhancing Financial Flows</p>
+            <p className="mt-4 xl:mt-6 text-slate-400 tracking-[0.4em] xl:tracking-[0.6em] uppercase text-xs xl:text-sm font-black font-mono px-4 xl:px-6 py-2 rounded-xl border border-white/10 backdrop-blur-sm">
+              Enhancing Financial Flows
+            </p>
           </div>
         </div>
 
-        {/* --- 40% ACTION SIDE --- */}
-        <div className="w-full lg:w-2/5 flex items-center justify-center p-6 md:p-12 min-h-screen">
+        {/* --- DYNAMIC ACTION PANEL (Optimized container spaces for Medium Screens / Small Laptops) --- */}
+        <div className="w-full lg:w-[45%] xl:w-2/5 flex items-center justify-center p-4 sm:p-8 md:p-12 min-h-screen">
           
           <div 
             ref={capsuleRef} 
-            className="w-full max-w-[420px] bg-gradient-to-br from-white/[0.12] via-blue-900/[0.04] to-white/[0.02] backdrop-blur-[60px] border border-white/20 rounded-[60px] p-10 lg:p-14 shadow-2xl relative overflow-hidden group"
+            className="w-full max-w-[420px] sm:max-w-[450px] lg:max-w-[410px] xl:max-w-[460px] bg-gradient-to-br from-white/[0.08] via-slate-950/[0.4] to-white/[0.01] backdrop-blur-[35px] border border-white/15 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 lg:p-10 xl:p-12 shadow-2xl relative overflow-hidden transition-all"
           >
-            <div className="flex flex-col items-center mb-10">
-               <h1 className="text-4xl font-black tracking-[0.4em] text-transparent bg-clip-text bg-gradient-to-b from-white via-silver to-gray-500 italic">ESTRA</h1>
+            {/* Top Brand Identity */}
+            <div className="flex flex-col items-center mb-6 sm:mb-8 lg:mb-6 xl:mb-10">
+               <h1 className="text-4xl sm:text-5xl font-black tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-300 to-slate-500 italic">ESTRA</h1>
                <div className="flex items-center gap-3 w-full mt-3">
-                 <div className="h-[0.5px] flex-1 bg-gradient-to-r from-transparent to-silver/40" />
-                 <p className="text-[7px] tracking-[0.3em] text-silver/60 uppercase font-black whitespace-nowrap">Redefining Financial Flows</p>
-                 <div className="h-[0.5px] flex-1 bg-gradient-to-l from-transparent to-silver/40" />
+                 <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/20" />
+                 <p className="text-[10px] tracking-[0.25em] text-slate-400 uppercase font-extrabold whitespace-nowrap">Secure Banking Gateway</p>
+                 <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/20" />
                </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="relative z-10 flex flex-col gap-8">
-              <div className="space-y-1 text-center lg:text-left">
+            <form onSubmit={handleSubmit} className="relative z-10 flex flex-col gap-5 sm:gap-6 xl:gap-7">
+              <div className="form-header-labels space-y-1 text-center lg:text-left">
                 {statusMsg && (
-                  <p className="text-[9px] text-[#4a90e2] font-black uppercase tracking-widest mb-2 animate-pulse">{statusMsg}</p>
+                  <div className="bg-slate-900/80 border border-white/10 rounded-xl px-4 py-2 mb-2">
+                    <p className="text-[13px] text-slate-300 font-extrabold tracking-wide text-center lg:text-left">{statusMsg}</p>
+                  </div>
                 )}
-                <h2 className="text-2xl font-black tracking-[0.2em] bg-gradient-to-r from-white via-silver to-gray-600 bg-clip-text text-transparent uppercase">
-                  {mode === "login" ? "WELCOME" : step === 1 ? "INITIALIZE" : "FINALIZE"}
+                <h2 className="text-2xl sm:text-3xl lg:text-2xl xl:text-3xl font-black tracking-[0.12em] bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent uppercase">
+                  {mode === "login" ? "Sign In" : mode === "signup" ? (step === 1 ? "Create Account" : "Set Details") : "Reset Password"}
                 </h2>
-                <p className="text-gray-600 text-[8px] tracking-[0.4em] uppercase font-bold">Neural Protocol: Active</p>
+                <p className="text-slate-400 text-xs tracking-wide font-medium">Please enter your details below.</p>
               </div>
 
-              {/* INPUT FIELDS WITH EYE TOGGLE MODIFICATIONS */}
-              <div className="input-group flex flex-col gap-4">
-                {mode === "login" ? (
+              {/* INPUT FIELDS AREA */}
+              <div className="input-group flex flex-col gap-3.5 xl:gap-4">
+                {mode === "login" && (
                   <>
-                    <div className="relative"><User className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-500" size={14} /><input key="login-user" name="username" value={formData.username} onChange={handleChange} type="text" placeholder="VAULT ID" className="w-full bg-black/40 border border-white/10 rounded-full pl-14 pr-6 py-4 outline-none focus:border-silver/40 focus:bg-black/60 transition-all text-[10px] tracking-widest placeholder:text-gray-700" required /></div>
                     <div className="relative">
-                      <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                      <input key="login-pass" name="password" value={formData.password} onChange={handleChange} type={showLoginPassword ? "text" : "password"} placeholder="KEY PHRASE" className="w-full bg-black/40 border border-white/10 rounded-full pl-14 pr-14 py-4 outline-none focus:border-silver/40 focus:bg-black/60 transition-all text-[10px] tracking-widest placeholder:text-gray-700" required />
-                      <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors cursor-pointer focus:outline-none">
-                        {showLoginPassword ? <Eye size={14} /> : <EyeOff size={14} />}
+                      <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input key="login-user" name="username" value={formData.username} onChange={handleChange} type="text" placeholder="Username" className="w-full bg-black/60 border border-white/10 rounded-xl pl-12 pr-5 py-3 xl:py-3.5 outline-none focus:border-white/40 transition-all text-[15px] font-medium text-white placeholder:text-slate-500 shadow-inner" required />
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input key="login-pass" name="password" value={formData.password} onChange={handleChange} type={showLoginPassword ? "text" : "password"} placeholder="Password" className="w-full bg-black/60 border border-white/10 rounded-xl pl-12 pr-12 py-3 xl:py-3.5 outline-none focus:border-white/40 transition-all text-[15px] font-medium text-white placeholder:text-slate-500 shadow-inner" required />
+                      <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer focus:outline-none">
+                        {showLoginPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                       </button>
                     </div>
                   </>
-                ) : (
+                )}
+
+                {mode === "signup" && (
                   <>
                     {step === 1 ? (
                       <>
-                        <div className="relative"><User className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-500" size={14} /><input key="signup-name" name="fullName" value={formData.fullName} onChange={handleChange} type="text" placeholder="FULL NAME" className="w-full bg-black/40 border border-white/10 rounded-full pl-14 pr-6 py-4 outline-none focus:border-silver/40 focus:bg-black/60 transition-all text-[10px] tracking-widest placeholder:text-gray-700" required /></div>
-                        <div className="relative"><Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-500" size={14} /><input key="signup-email" name="email" value={formData.email} onChange={handleChange} type="email" placeholder="EMAIL ADDRESS" className="w-full bg-black/40 border border-white/10 rounded-full pl-14 pr-6 py-4 outline-none focus:border-silver/40 focus:bg-black/60 transition-all text-[10px] tracking-widest placeholder:text-gray-700" required /></div>
+                        <div className="relative">
+                          <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input key="signup-name" name="fullName" value={formData.fullName} onChange={handleChange} type="text" placeholder="Full Name" className="w-full bg-black/60 border border-white/10 rounded-xl pl-12 pr-5 py-3 xl:py-3.5 outline-none focus:border-white/40 transition-all text-[15px] font-medium text-white placeholder:text-slate-500 shadow-inner" required />
+                        </div>
+                        <div className="relative">
+                          <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input key="signup-email" name="email" value={formData.email} onChange={handleChange} type="email" placeholder="Email Address" className="w-full bg-black/60 border border-white/10 rounded-xl pl-12 pr-5 py-3 xl:py-3.5 outline-none focus:border-white/40 transition-all text-[15px] font-medium text-white placeholder:text-slate-500 shadow-inner" required />
+                        </div>
                       </>
                     ) : (
                       <>
-                        <div className="relative"><User className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-500" size={14} /><input key="signup-user" name="username" value={formData.username} onChange={handleChange} type="text" placeholder="NEW VAULT ID" className="w-full bg-black/40 border border-white/10 rounded-full pl-14 pr-8 py-4 outline-none focus:border-silver/40 focus:bg-black/60 transition-all text-[10px] tracking-widest placeholder:text-gray-700" required /></div>
                         <div className="relative">
-                          <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                          <input key="signup-pass" name="password" value={formData.password} onChange={handleChange} type={showSignupPassword ? "text" : "password"} placeholder="NEW KEY PHRASE (MIN 8)" className="w-full bg-black/40 border border-white/10 rounded-full pl-14 pr-14 py-4 outline-none focus:border-silver/40 focus:bg-black/60 transition-all text-[10px] tracking-widest placeholder:text-gray-700" required />
-                          <button type="button" onClick={() => setShowSignupPassword(!showSignupPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors cursor-pointer focus:outline-none">
-                            {showSignupPassword ? <Eye size={14} /> : <EyeOff size={14} />}
+                          <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input key="signup-user" name="username" value={formData.username} onChange={handleChange} type="text" placeholder="Choose Username" className="w-full bg-black/60 border border-white/10 rounded-xl pl-12 pr-5 py-3 xl:py-3.5 outline-none focus:border-white/40 transition-all text-[15px] font-medium text-white placeholder:text-slate-500 shadow-inner" required />
+                        </div>
+                        <div className="relative">
+                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input key="signup-pass" name="password" value={formData.password} onChange={handleChange} type={showSignupPassword ? "text" : "password"} placeholder="Password (Minimum 8 Characters)" className="w-full bg-black/60 border border-white/10 rounded-xl pl-12 pr-12 py-3 xl:py-3.5 outline-none focus:border-white/40 transition-all text-[15px] font-medium text-white placeholder:text-slate-500 shadow-inner" required />
+                          <button type="button" onClick={() => setShowSignupPassword(!showSignupPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer focus:outline-none">
+                            {showSignupPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {mode === "forgot" && (
+                  <>
+                    {step === 1 ? (
+                      <div className="relative">
+                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input key="forgot-email" name="email" value={formData.email} onChange={handleChange} type="email" placeholder="Enter Registered Email" className="w-full bg-black/60 border border-white/10 rounded-xl pl-12 pr-5 py-3 xl:py-3.5 outline-none focus:border-white/40 transition-all text-[15px] font-medium text-white placeholder:text-slate-500 shadow-inner" required />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="relative">
+                          <Key className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input key="forgot-code" name="otpCode" value={formData.otpCode} onChange={handleChange} type="text" placeholder="6-Digit Verification Code" className="w-full bg-black/60 border border-white/10 rounded-xl pl-12 pr-5 py-3 xl:py-3.5 outline-none focus:border-white/40 transition-all text-[15px] font-medium text-white placeholder:text-slate-500 shadow-inner" required />
+                        </div>
+                        <div className="relative">
+                          <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input key="forgot-newpass" name="newPassword" value={formData.newPassword} onChange={handleChange} type={showResetPassword ? "text" : "password"} placeholder="Enter New Password" className="w-full bg-black/60 border border-white/10 rounded-xl pl-12 pr-12 py-3 xl:py-3.5 outline-none focus:border-white/40 transition-all text-[15px] font-medium text-white placeholder:text-slate-500 shadow-inner" required />
+                          <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer focus:outline-none">
+                            {showResetPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                           </button>
                         </div>
                       </>
@@ -258,45 +384,55 @@ const Auth = ({ onAuthSuccess }) => {
                 )}
               </div>
 
-              {/* TICK BOX */}
+              {/* FORGOT PASSWORD EXTRA ACTION LINK */}
+              {mode === "login" && (
+                <div className="text-right px-1 -mt-1">
+                  <button type="button" onClick={switchToForgot} className="text-sm font-bold text-slate-400 hover:text-white transition-colors cursor-pointer">
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
+
+              {/* PROTOCOLS TICK BOX */}
               {mode === "signup" && step === 2 && (
-                <div className="flex items-center gap-4 px-2 cursor-pointer group/tick" onClick={() => setIsTicked(!isTicked)}>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isTicked ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-white/20 group-hover/tick:border-white/50'}`}>
-                    {isTicked && <CheckCircle2 size={12} className="text-black" />}
+                <div className="flex items-start gap-3 px-1 cursor-pointer group/tick select-none" onClick={() => setIsTicked(!isTicked)}>
+                  <div className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 shrink-0 ${isTicked ? 'bg-white border-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-white/20 group-hover/tick:border-white/40'}`}>
+                    {isTicked && <CheckCircle2 size={14} className="text-black" />}
                   </div>
-                  <span className={`text-[8px] font-bold uppercase tracking-[0.2em] transition-colors ${isTicked ? 'text-white' : 'text-gray-500'}`}>
-                    Confirm Protocol Agreement (18+)
+                  <span className={`text-[12px] font-bold tracking-wide transition-colors leading-tight ${isTicked ? 'text-white' : 'text-slate-400'}`}>
+                    I agree to the Terms of Service and Privacy Policy.
                   </span>
                 </div>
               )}
 
-              {/* ACTION BUTTON WITH SECURITY PROTOCOLS */}
-              <div className="space-y-6">
+              {/* ACTION EXECUTION SUBMIT BUTTON */}
+              <div className="space-y-3 pt-1">
                 <button 
-                  type={mode === "signup" && step === 1 ? "button" : "submit"}
-                  onClick={mode === "signup" && step === 1 ? handleNextSlide : undefined}
+                  type={(mode === "signup" && step === 1) ? "button" : "submit"}
+                  onClick={(mode === "signup" && step === 1) ? handleNextSlide : undefined}
                   disabled={
                     (mode === "login" && !isLoginValid) ||
                     (mode === "signup" && step === 1 && !isSignupStep1Valid) ||
-                    (mode === "signup" && step === 2 && !isSignupStep2Valid)
+                    (mode === "signup" && step === 2 && !isSignupStep2Valid) ||
+                    (mode === "forgot" && step === 1 && !isForgotStep1Valid) ||
+                    (mode === "forgot" && step === 2 && !isForgotStep2Valid)
                   }
-                  className={`w-full py-5 rounded-full font-black uppercase tracking-[0.3em] text-[10px] transition-all duration-700 relative overflow-hidden group/btn
-                  ${((mode === "login" && !isLoginValid) || (mode === "signup" && step === 1 && !isSignupStep1Valid) || (mode === "signup" && step === 2 && !isSignupStep2Valid)) 
-                    ? 'bg-white/5 text-gray-700 cursor-not-allowed opacity-50' 
-                    : 'bg-white text-black hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:scale-[1.03]'}`}
+                  className={`w-full py-3.5 rounded-xl font-black uppercase tracking-widest text-[14px] transition-all duration-300 relative overflow-hidden group/btn cursor-pointer
+                  ${((mode === "login" && !isLoginValid) || (mode === "signup" && step === 1 && !isSignupStep1Valid) || (mode === "signup" && step === 2 && !isSignupStep2Valid) || (mode === "forgot" && step === 1 && !isForgotStep1Valid) || (mode === "forgot" && step === 2 && !isForgotStep2Valid)) 
+                    ? 'bg-white/5 text-slate-600 cursor-not-allowed opacity-40' 
+                    : 'bg-white text-black hover:scale-[1.015]'}`}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    {mode === "login" ? "ACCESS VAULT" : step === 1 ? "NEXT STEP" : "AUTHORIZE"} <ArrowRight size={14} />
+                    {mode === "login" ? "Login to Vault" : mode === "signup" ? (step === 1 ? "Next Step" : "Complete Registration") : (step === 1 ? "Send Reset Code" : "Confirm New Password")} <ArrowRight size={16} />
                   </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover/btn:animate-[shimmer_2.5s_infinite]" />
                 </button>
 
                 <button 
                   type="button"
                   onClick={toggleAuth}
-                  className="w-full text-center text-[8px] tracking-[0.5em] text-gray-600 uppercase hover:text-white transition-all font-bold"
+                  className="w-full text-center text-sm tracking-wider text-slate-400 hover:text-white transition-all font-bold uppercase py-1 cursor-pointer"
                 >
-                  {mode === "login" ? "// ESTABLISH NEW ACCESS" : "// RETURN TO LOGIN"}
+                  {mode === "login" ? "Don't have an account? Sign Up" : "Back to Login Screen"}
                 </button>
               </div>
             </form>
@@ -304,7 +440,15 @@ const Auth = ({ onAuthSuccess }) => {
         </div>
       </div>
 
-      <style>{` @keyframes shimmer { 100% { transform: translateX(100%); } } `}</style>
+      {/* STYLING RULES & SMOOTH SCROLL BEHAVIOR SETUP */}
+      <style>{`
+        html {
+          scroll-behavior: smooth;
+        }
+        .smooth-scroll-container {
+          -webkit-overflow-scrolling: touch;
+        }
+      `}</style>
     </div>
   );
 };
