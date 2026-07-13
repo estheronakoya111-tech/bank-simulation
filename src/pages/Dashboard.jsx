@@ -208,7 +208,10 @@ const Dashboard = ({ onLogout, triggerTransfer, triggerBills, triggerPrivacy, tr
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       particles = [];
-      for (let i = 0; i < 2000; i++) particles.push(new Particle());
+      
+      // Dynamic Particle Scaling (Reduces particle load cleanly on small devices)
+      const maxCount = window.innerWidth < 1024 ? 45 : 2000;
+      for (let i = 0; i < maxCount; i++) particles.push(new Particle());
     };
 
     class Particle {
@@ -216,8 +219,8 @@ const Dashboard = ({ onLogout, triggerTransfer, triggerBills, triggerPrivacy, tr
       reset() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 1.2 + 0.4;
-        this.opacity = Math.random() * 0.3 + 0.1;
+        this.size = window.innerWidth < 1024 ? Math.random() * 2.0 + 0.8 : Math.random() * 1.2 + 0.4;
+        this.opacity = window.innerWidth < 1024 ? Math.random() * 0.4 + 0.2 : Math.random() * 0.3 + 0.1;
         this.speed = Math.random() * 0.15 + 0.05;
       }
       update() {
@@ -259,7 +262,7 @@ const Dashboard = ({ onLogout, triggerTransfer, triggerBills, triggerPrivacy, tr
       gsap.to(backdropRef.current, { opacity: 1, pointerEvents: "auto", duration: 0.5 });
     } else {
       setIsDrawerOpen(false);
-      gsap.to(drawerRef.current, { x: "100%", opacity: 0, duration: 0.4 });
+      gsap.to(drawerRef.current, { x: "110%", opacity: 0, duration: 0.4 });
       gsap.to(backdropRef.current, { opacity: 0, pointerEvents: "none", duration: 0.5 });
     }
   };
@@ -412,7 +415,7 @@ const Dashboard = ({ onLogout, triggerTransfer, triggerBills, triggerPrivacy, tr
           </div>
 
           <div className="lg:hidden w-full max-w-[420px] flex flex-col gap-8 mt-4 mb-4">
-            <div className="grid grid-cols-4 gap-y-6 gap-x-3">
+            <div className="grid grid-cols-4 gap-y-7 gap-x-4">
               {(showAllMobileServices ? services : services.slice(0, 7)).map(x => (
                 <div key={x.n} onClick={() => {
                   if (x.n === 'Transfer') triggerTransfer();
@@ -423,19 +426,21 @@ const Dashboard = ({ onLogout, triggerTransfer, triggerBills, triggerPrivacy, tr
                   else if (x.n === 'Activity') triggerActivity(); 
                   else if (x.n === 'Support') triggerSupport();
                   else showComingSoon(x.n);
-                }} className="flex flex-col items-center gap-2 cursor-pointer">
-                  <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/5 flex items-center justify-center active:scale-90 transition">
-                    <i className={`pi ${x.i} text-white/80 text-lg`} />
+                }} className="flex flex-col items-center gap-2.5 cursor-pointer group">
+                  {/* Bolder, Larger, and Highly Seeable Mobile Utility Icons */}
+                  <div className="w-14 h-14 rounded-2xl bg-white/[0.07] border border-white/15 flex items-center justify-center active:scale-90 transition shadow-md group-hover:border-white/40">
+                    <i className={`pi ${x.i} text-white text-xl font-bold drop-shadow-[0_0_4px_rgba(255,255,255,0.2)]`} />
                   </div>
-                  <span className="text-white/30 text-[8px] uppercase tracking-wider text-center">{x.n}</span>
+                  {/* High-Legibility Bold Fonts for Action Items */}
+                  <span className="text-white font-bold text-[11px] uppercase tracking-wide text-center">{x.n}</span>
                 </div>
               ))}
               {!showAllMobileServices && (
-                <div onClick={() => setShowAllMobileServices(true)} className="flex flex-col items-center gap-2 cursor-pointer">
-                  <div className="w-12 h-12 rounded-xl bg-white/[0.01] border border-dashed border-white/10 flex items-center justify-center active:scale-95 transition">
-                    <i className="pi pi-ellipsis-h text-white/20 text-lg" />
+                <div onClick={() => setShowAllMobileServices(true)} className="flex flex-col items-center gap-2.5 cursor-pointer group">
+                  <div className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-dashed border-white/20 flex items-center justify-center active:scale-95 transition">
+                    <i className="pi pi-ellipsis-h text-white/50 text-xl font-bold" />
                   </div>
-                  <span className="text-white/20 text-[8px] uppercase tracking-wider">More</span>
+                  <span className="text-white/50 font-bold text-[11px] uppercase tracking-wide">More</span>
                 </div>
               )}
             </div>
@@ -467,15 +472,19 @@ const Dashboard = ({ onLogout, triggerTransfer, triggerBills, triggerPrivacy, tr
 
       <div ref={backdropRef} onClick={toggleDrawer} className="fixed inset-0 bg-black/80 z-[600] opacity-0 pointer-events-none transition-opacity cursor-pointer" />
       
-      <div ref={drawerRef} className="fixed top-0 right-0 h-full w-[80%] max-w-[320px] z-[700] bg-[#030303] border-l border-white/10 p-10 translate-x-full">
+      {/* Modernized Mobile Sidebar Drawer Overlay System */}
+      <div 
+        ref={drawerRef} 
+        className="fixed top-0 right-0 h-[calc(100%-2rem)] w-[82%] max-w-[310px] z-[700] bg-[#05060a]/80 backdrop-blur-2xl border border-white/10 p-8 translate-x-[110%] rounded-[32px] m-4 shadow-2xl transition-transform duration-300"
+      >
          <div className="flex flex-col h-full justify-between">
             <div className="space-y-10">
-              <div className="flex flex-col gap-1">
-                <p className="font-light text-xl tracking-tight">{isMaskActive ? "Anonymous Node" : username}</p>
-                <p className="text-white/20 text-[8px] uppercase tracking-[0.3em]">Premium Access</p>
+              <div className="flex flex-col gap-1 border-b border-white/5 pb-4">
+                <p className="font-bold text-xl tracking-wide text-white">{isMaskActive ? "Anonymous Node" : username}</p>
+                <p className="text-white/40 text-[9px] uppercase tracking-[0.3em] font-mono">Premium Access</p>
               </div>
-              <div className="flex flex-col gap-6">
-                 <h3 className="text-white/10 text-[9px] uppercase tracking-[0.5em] mb-1">Vault Control</h3>
+              <div className="flex flex-col gap-7">
+                 <h3 className="text-white/20 text-[10px] uppercase tracking-[0.5em] font-bold mb-1">Vault Control</h3>
                  {[
                    {n: 'Account Settings', i: 'pi-cog'}, 
                    {n: 'Privacy Node', i: 'pi-eye-slash'}, 
@@ -488,14 +497,14 @@ const Dashboard = ({ onLogout, triggerTransfer, triggerBills, triggerPrivacy, tr
                      else if (item.n === 'Support Link') { toggleDrawer(); triggerSupport(); }
                      else if (item.n === 'Account Settings') { toggleDrawer(); triggerSettings(); } 
                      else showComingSoon(item.n);
-                   }} className="flex items-center gap-4 group cursor-pointer opacity-60 hover:opacity-100 transition-all">
-                     <i className={`pi ${item.i} text-white/30 group-hover:text-white text-sm`} />
-                     <p className="text-white/40 text-[10px] uppercase tracking-[0.3em] group-hover:text-white">{item.n}</p>
+                   }} className="flex items-center gap-4 group cursor-pointer opacity-75 hover:opacity-100 transition-all">
+                     <i className={`pi ${item.i} text-white font-bold text-base group-hover:text-white`} />
+                     <p className="text-white/70 text-[11px] uppercase tracking-[0.25em] font-bold group-hover:text-white">{item.n}</p>
                    </div>
                  ))}
               </div>
             </div>
-            <button onClick={handleLogout} className="w-full py-4 border border-red-500/10 text-red-500/40 text-[9px] tracking-[1em] uppercase rounded-xl hover:bg-red-500/5 transition-all font-black cursor-pointer">Terminate</button>
+            <button onClick={handleLogout} className="w-full py-4 border border-red-500/20 bg-red-500/5 text-red-400 text-[10px] tracking-[0.6em] uppercase rounded-2xl hover:bg-red-500/10 transition-all font-bold cursor-pointer">Terminate</button>
          </div>
       </div>
 
