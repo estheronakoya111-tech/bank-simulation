@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ArrowLeft, KeyRound, Clock, ShieldCheck } from "lucide-react";
 
-const Otp = ({ username, onAuthSuccess, onBack }) => {
+const Otp = ({ username, onAuthSuccess, onBack, userEmail }) => {
   const [otp, setOtp] = useState(new Array(6).fill(""));
-  const [timer, setTimer] = useState(300);
+  const [timer, setTimer] = useState(300); // 5-minute initial code expiration
+  const [resendCooldown, setResendCooldown] = useState(0); // 30-second rate limiter tracking
   const [statusMsg, setStatusMsg] = useState("");
   const inputRefs = useRef([]);
   const containerRef = useRef(null);
@@ -79,15 +80,26 @@ const Otp = ({ username, onAuthSuccess, onBack }) => {
     };
   }, []);
 
+  // Main 5-minute countdown clock effect
   useEffect(() => {
     if (timer > 0) {
       const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
       return () => clearInterval(interval);
+    } else {
+      setStatusMsg("Code expired. Please request a new one.");
     }
   }, [timer]);
 
+  // Rate-limiting 30-second resend restriction tracker
   useEffect(() => {
-    if (otp.every(digit => digit !== "") && statusMsg !== "SYNCHRONIZING...") {
+    if (resendCooldown > 0) {
+      const interval = setInterval(() => setResendCooldown(prev => prev - 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [resendCooldown]);
+
+  useEffect(() => {
+    if (otp.every(digit => digit !== "") && statusMsg !== "Verifying Code...") {
       handleVerify();
     }
   }, [otp]);
@@ -95,7 +107,7 @@ const Otp = ({ username, onAuthSuccess, onBack }) => {
   // --- BACKEND LOGIC (OPTIMIZED) ---
   const handleVerify = async () => {
     const otpCode = otp.join("");
-    setStatusMsg("SYNCHRONIZING...");
+    setStatusMsg("Verifying Code...");
     try {
       const response = await fetch(`${import.meta.env.VITE_BANK_BACKEND_URL}/verify`, { 
         method: "POST",
@@ -104,13 +116,10 @@ const Otp = ({ username, onAuthSuccess, onBack }) => {
       });
       const data = await response.json();
       if (response.ok) {
-        setStatusMsg("ACCESS GRANTED.");
+        setStatusMsg("Login Successful!");
         
-        // FIXED: Strips any unwanted stringified quotation marks from the token 
-        // string before passing it up to App.jsx to prevent 422 errors on /history.
+        // FIXED: Strips stringified quotes from the token payload to preserve dashboard sessions
         const cleanToken = data.token.replace(/^"|"$/g, '');
-
-        // SAFETY FALLBACK: Capture the profile access claims if provided directly by response
         const userRole = data.role || (username.toLowerCase().includes("admin") ? "admin" : "user");
         sessionStorage.setItem('estra_role', userRole);
 
@@ -123,12 +132,41 @@ const Otp = ({ username, onAuthSuccess, onBack }) => {
           });
         }, 1200);
       } else {
-        setStatusMsg(data.message ? data.message.toUpperCase() : "VERIFICATION FAILED"); 
+        setStatusMsg(data.message ? data.message : "Incorrect verification code."); 
         setOtp(new Array(6).fill(""));
         if(inputRefs.current[0]) inputRefs.current[0].focus();
       }
     } catch (error) {
-      setStatusMsg("CONNECTION FAILED.");
+      setStatusMsg("Connection failed. Check your network.");
+    }
+  };
+
+  // --- HANDLER FOR RESENDING VERIFICATION CODE ---
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setStatusMsg("Sending new code...");
+    
+    try {
+      // Pulls register or user profiles via input logs
+      const targetEmail = userEmail || formData?.email || sessionStorage.getItem("pending_email") || "";
+      const response = await fetch(`${import.meta.env.VITE_BANK_BACKEND_URL}/resend-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: targetEmail || username }) 
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        setStatusMsg("A new code has been sent!");
+        setTimer(300); // Reset primary countdown window
+        setResendCooldown(30); // Impose 30-second server safety lock
+        setOtp(new Array(6).fill(""));
+        if(inputRefs.current[0]) inputRefs.current[0].focus();
+      } else {
+        setStatusMsg(data.message || "Failed to resend code.");
+      }
+    } catch (error) {
+      setStatusMsg("Connection error. Could not request new code.");
     }
   };
 
@@ -169,7 +207,7 @@ const Otp = ({ username, onAuthSuccess, onBack }) => {
         <button 
           onClick={onBack} 
           aria-label="Return to login layout"
-          className="w-12 h-12 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-white/30 transition-all duration-300 group backdrop-blur-md cursor-pointer focus:outline-none"
+          className="w-12 h-12 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-white/30 transition-all duration-300 group backdrop-blur-md cursor-pointer focus:outline-none hover:scale-105"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform duration-300" />
         </button>
@@ -184,20 +222,20 @@ const Otp = ({ username, onAuthSuccess, onBack }) => {
         </div>
 
         <h1 data-animate-otp className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight mb-3 text-white">
-          Verification Required
+          Enter Security Code
         </h1>
         
-        <p data-animate-otp className="text-xs sm:text-sm font-mono tracking-wider text-neutral-500 uppercase max-w-md leading-relaxed mb-12">
-          A security protocol code has been routed to your Gmail instance for validation.
+        <p data-animate-otp className="text-sm tracking-wide text-neutral-400 max-w-md leading-relaxed mb-12 normal-case font-medium">
+          A 6-digit verification code has been sent to your registered email address.
         </p>
 
         {statusMsg && (
-          <div data-animate-otp className="mb-6 text-[10px] font-mono tracking-[0.3em] bg-white/[0.02] border border-white/5 px-4 py-2 rounded-full text-blue-400 animate-pulse uppercase">
-            // {statusMsg}
+          <div data-animate-otp className="mb-6 text-xs font-semibold bg-white/[0.02] border border-white/5 px-5 py-2.5 rounded-xl text-blue-400 animate-pulse normal-case">
+            {statusMsg}
           </div>
         )}
 
-        <div data-animate-otp className="flex justify-center gap-3 sm:gap-4 mb-12 relative w-full">
+        <div data-animate-otp className="flex justify-center gap-3 sm:gap-4 mb-8 relative w-full">
           {otp.map((data, index) => (
             <input 
               key={index} 
@@ -208,9 +246,25 @@ const Otp = ({ username, onAuthSuccess, onBack }) => {
               onPaste={handlePaste} 
               onChange={(e) => handleChange(e.target, index)} 
               onKeyDown={(e) => handleNextInput(e, index)}
-              className="w-11 h-16 sm:w-16 sm:h-24 bg-[#05070a]/60 border border-white/10 text-white text-3xl sm:text-5xl font-light text-center focus:border-neutral-400 focus:bg-[#070913] outline-none transition-all duration-300 rounded-2xl font-mono shadow-2xl backdrop-blur-md"
+              className="w-11 h-16 sm:w-16 sm:h-24 bg-[#05070a]/60 border border-white/10 text-white text-3xl sm:text-5xl font-light text-center focus:border-white/40 focus:bg-[#070913] outline-none transition-all duration-300 rounded-2xl font-mono shadow-2xl backdrop-blur-md"
             />
           ))}
+        </div>
+
+        {/* RESEND CODE FALLBACK ACTION INTERACTIVE LINK */}
+        <div data-animate-otp className="mb-10 text-center">
+          <button
+            type="button"
+            disabled={resendCooldown > 0}
+            onClick={handleResendOtp}
+            className={`text-sm font-bold tracking-wide transition-all uppercase cursor-pointer ${
+              resendCooldown > 0 
+                ? "text-neutral-600 cursor-not-allowed" 
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            {resendCooldown > 0 ? `Resend Code in (${resendCooldown}s)` : "Didn't receive a code? Resend"}
+          </button>
         </div>
 
         <div data-animate-otp className="w-full max-w-md flex flex-col gap-3 border-t border-white/[0.03] pt-8">
@@ -221,21 +275,21 @@ const Otp = ({ username, onAuthSuccess, onBack }) => {
             />
           </div>
           
-          <div className="flex justify-between w-full text-[9px] font-mono tracking-widest uppercase text-neutral-500">
-            <span className="flex items-center gap-1.5"><Clock size={10} /> Syncing Window</span>
+          <div className="flex justify-between w-full text-xs font-semibold tracking-wide text-neutral-500">
+            <span className="flex items-center gap-1.5"><Clock size={12} /> Code Expiration</span>
             <span className="text-neutral-300 font-bold">{Math.floor(timer/60)}:{(timer%60).toString().padStart(2,'0')}</span>
           </div>
         </div>
 
-        <div data-animate-otp className="mt-12 text-[10px] font-mono text-neutral-600 flex items-center gap-2">
-          <ShieldCheck size={12} />
-          <span>Active Identity Scope: {username}</span>
+        <div data-animate-otp className="mt-12 text-xs text-neutral-500 flex items-center gap-2 font-medium">
+          <ShieldCheck size={14} className="text-emerald-500" />
+          <span>Securing profile access for: {username}</span>
         </div>
       </div>
 
-      <footer className="w-full flex flex-col sm:flex-row justify-between items-center gap-2 text-[9px] font-mono text-white/10 tracking-[0.3em] uppercase mt-auto shrink-0 pt-4 border-t border-white/[0.01]">
-        <div>SYS_AUTH // VERIFICATION_NODE</div>
-        <div>ESTRA CONSOLE SYSTEMS © 2026</div>
+      <footer className="w-full flex flex-col sm:flex-row justify-between items-center gap-2 text-[10px] text-white/20 tracking-[0.20em] font-medium uppercase select-none mt-auto shrink-0 pt-4 border-t border-white/[0.01]">
+        <div>ESTRA SECURITY TERMINAL</div>
+        <div>ESTRA BANKING SYSTEMS © 2026</div>
       </footer>
     </div>
   );
