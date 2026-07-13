@@ -20,7 +20,7 @@ const Transfer = ({ onBack }) => {
   const receiptRef = useRef(null);
   const starsRef = useRef(null);
 
-  // --- 1. DYNAMIC GALAXY ---
+  // --- 1. DYNAMIC GALAXY (OPTIMIZED PARTICLE REDUCTION FOR ALL DEVICES) ---
   useEffect(() => {
     const canvas = starsRef.current;
     const ctx = canvas.getContext("2d");
@@ -31,7 +31,10 @@ const Transfer = ({ onBack }) => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       particles = [];
-      for (let i = 0; i < 3000; i++) particles.push(new Particle());
+      
+      // Strict Uniform Particle Reduction: 180 stars on mobile, 350 on large desktop viewports
+      const maxParticles = window.innerWidth < 1024 ? 180 : 350;
+      for (let i = 0; i < maxParticles; i++) particles.push(new Particle());
     };
 
     class Particle {
@@ -175,16 +178,25 @@ const Transfer = ({ onBack }) => {
     }, 800);
   };
 
-  const bgIcons = ['pi-shield', 'pi-bolt', 'pi-lock', 'pi-verified', 'pi-wallet', 'pi-database', 'pi-chart-line', 'pi-money-bill', 'pi-globe', 'pi-key', 'pi-briefcase', 'pi-building', 'pi-percentage', 'pi-star-fill', 'pi-eye-slash'];
+  // Explicit Array mapping exactly 22 floating icons for modern dark-glass interface aesthetics
+  const specificFloatingIcons = [
+    'pi-shield', 'pi-bolt', 'pi-lock', 'pi-wallet', 'pi-database', 'pi-chart-line', 'pi-globe', 'pi-key', 'pi-building', 'pi-eye-slash',
+    'pi-shield', 'pi-bolt', 'pi-lock', 'pi-wallet', 'pi-database', 'pi-chart-line', 'pi-globe', 'pi-key', 'pi-building', 'pi-eye-slash',
+    'pi-shield', 'pi-bolt'
+  ];
 
   return (
     <div className="fixed inset-0 w-full h-full bg-black overflow-hidden font-sans flex items-center justify-center">
       <canvas ref={starsRef} className="absolute inset-0 z-0 bg-black" />
 
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.07]">
-        {bgIcons.map((icon, i) => (
-          <i key={i} className={`pi ${icon} bg-icon text-white text-4xl lg:text-6xl absolute`} 
-             style={{ top: `${Math.random() * 90}%`, left: `${Math.random() * 90}%` }} 
+      {/* Background Decor Layer - Exactly 22 Floating Silver Ambient Icons */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.14]">
+        {specificFloatingIcons.map((icon, i) => (
+          <i key={i} className={`pi ${icon} bg-icon text-slate-200 text-4xl lg:text-5xl absolute drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] font-bold`} 
+             style={{ 
+               top: `${10 + (i * 3.8)}%`, 
+               left: `${(i % 2 === 0 ? 3 + (i * 0.8) : 92 - (i * 0.8))}%` 
+             }} 
           />
         ))}
       </div>
