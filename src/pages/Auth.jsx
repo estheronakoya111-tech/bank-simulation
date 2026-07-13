@@ -268,13 +268,13 @@ const Auth = ({ onAuthSuccess }) => {
           <div 
             key={idx}
             ref={el => iconRef.current[idx] = el}
-            className="absolute opacity-[0.12] lg:opacity-20 text-slate-400 drop-shadow-[0_0_6px_rgba(255,255,255,0.15)] transition-opacity"
+            className="absolute opacity-[0.14] lg:opacity-20 text-slate-200 drop-shadow-[0_0_8px_rgba(255,255,255,0.25)] transition-opacity"
             style={{ 
               top: `${4 + (idx * 4.2)}%`, 
               left: `${(idx % 2 === 0 ? 2 + (idx * 0.4) : 94 - (idx * 0.4))}%` 
             }}
           >
-            <Icon size={idx % 3 === 0 ? 24 : idx % 3 === 1 ? 30 : 38} strokeWidth={1.2} />
+            <Icon size={idx % 3 === 0 ? 24 : idx % 3 === 1 ? 30 : 38} strokeWidth={1.4} />
           </div>
         ))}
       </div>
@@ -299,21 +299,35 @@ const Auth = ({ onAuthSuccess }) => {
         </div>
 
         {/* --- DYNAMIC ACTION PANEL (Responsive Layout for Mobile and Laptops) --- */}
-        <div className="w-full lg:w-[45%] xl:w-2/5 flex items-center justify-center p-4 sm:p-8 md:p-12 min-h-screen">
+        <div className="w-full lg:w-[45%] xl:w-2/5 flex flex-col items-center justify-center p-4 sm:p-8 md:p-12 min-h-screen">
           
-          <div 
-            ref={capsuleRef} 
-            className="w-[92%] sm:w-full max-w-[420px] sm:max-w-[450px] lg:max-w-[410px] xl:max-w-[460px] bg-gradient-to-br from-white/[0.08] via-slate-950/[0.4] to-white/[0.01] backdrop-blur-[35px] border border-white/5 lg:border-white/15 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 lg:p-10 xl:p-12 shadow-2xl relative overflow-hidden transition-all h-auto py-8 sm:py-10"
-          >
-            {/* Top Brand Identity */}
-            <div className="flex flex-col items-center mb-6 sm:mb-8 lg:mb-6 xl:mb-10">
-               <h1 className="text-4xl sm:text-5xl font-black tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-300 to-slate-500 italic">ESTRA</h1>
+          {/* Top Brand Identity (Pulled OUTSIDE the card layout container boundaries on Mobile/Tablets) */}
+          {isMobile && (
+            <div className="flex flex-col items-center mb-6 w-[92%] select-none animate-fadeIn">
+               <h1 className="text-5xl font-black tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-300 to-slate-500 italic">ESTRA</h1>
                <div className="flex items-center gap-3 w-full mt-3">
-                 <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/20" />
+                 <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/30" />
                  <p className="text-[10px] tracking-[0.25em] text-slate-400 uppercase font-extrabold whitespace-nowrap">Secure Banking Gateway</p>
-                 <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/20" />
+                 <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/30" />
                </div>
             </div>
+          )}
+
+          <div 
+            ref={capsuleRef} 
+            className="w-[92%] sm:w-full max-w-[420px] sm:max-w-[450px] lg:max-w-[410px] xl:max-w-[460px] bg-gradient-to-br from-white/[0.08] via-slate-950/[0.4] to-white/[0.01] backdrop-blur-[35px] border border-white/20 lg:border-white/15 rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 lg:p-10 xl:p-12 shadow-2xl relative overflow-hidden transition-all h-auto py-8 sm:py-10"
+          >
+            {/* Top Brand Identity (Kept INSIDE original card frame strictly on Desktops/Laptops) */}
+            {!isMobile && (
+              <div className="flex flex-col items-center mb-6 sm:mb-8 lg:mb-6 xl:mb-10">
+                 <h1 className="text-4xl sm:text-5xl font-black tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-300 to-slate-500 italic">ESTRA</h1>
+                 <div className="flex items-center gap-3 w-full mt-3">
+                   <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/20" />
+                   <p className="text-[10px] tracking-[0.25em] text-slate-400 uppercase font-extrabold whitespace-nowrap">Secure Banking Gateway</p>
+                   <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/20" />
+                 </div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="relative z-10 flex flex-col gap-5 sm:gap-6 xl:gap-7">
               <div className="form-header-labels space-y-2 text-center lg:text-left">
@@ -323,15 +337,15 @@ const Auth = ({ onAuthSuccess }) => {
                   </div>
                 )}
                 <h2 className="text-2xl sm:text-3xl lg:text-2xl xl:text-3xl font-black tracking-[0.12em] bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent uppercase">
-                  {mode === "login" ? "Sign In" : mode === "signup" ? ((isMobile || step === 2) ? "Create Account" : "Create Account") : "Reset Password"}
+                  {mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Reset Password"}
                 </h2>
                 
-                {/* Horizontal Title Icons on Mobile for Login and Forgot Password layouts */}
+                {/* Sharpened Horizontal Security Row on Mobile strictly for Login and Forgot Password maps */}
                 {mode !== "signup" && isMobile && (
-                  <div className="mobile-security-row flex items-center justify-center gap-6 py-2 border-y border-white/5 my-2">
-                    <Shield size={18} className="text-slate-400 opacity-80" />
-                    <Lock size={18} className="text-slate-400 opacity-80" />
-                    <Cpu size={18} className="text-slate-400 opacity-80" />
+                  <div className="mobile-security-row flex items-center justify-center gap-7 py-2.5 border-y border-white/10 my-2.5">
+                    <Shield size={19} className="text-slate-200 drop-shadow-[0_0_4px_rgba(255,255,255,0.2)] font-bold" />
+                    <Lock size={19} className="text-slate-200 drop-shadow-[0_0_4px_rgba(255,255,255,0.2)] font-bold" />
+                    <Cpu size={19} className="text-slate-200 drop-shadow-[0_0_4px_rgba(255,255,255,0.2)] font-bold" />
                   </div>
                 )}
                 <p className="text-slate-400 text-xs tracking-wide font-medium">Please enter your details below.</p>
@@ -423,7 +437,7 @@ const Auth = ({ onAuthSuccess }) => {
                 </div>
               )}
 
-              {/* PROTOCOLS TICK BOX */}
+              {/* PROTOCOLS TICK BOX (Signup specific terms loader) */}
               {mode === "signup" && (isMobile || step === 2) && (
                 <div className="flex items-start gap-3 px-1 cursor-pointer group/tick select-none" onClick={() => setIsTicked(!isTicked)}>
                   <div className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 shrink-0 ${isTicked ? 'bg-white border-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-white/20 group-hover/tick:border-white/40'}`}>
@@ -435,9 +449,9 @@ const Auth = ({ onAuthSuccess }) => {
                 </div>
               )}
 
-              {/* "NOT A ROBOT" SECURE TICK CIRCLE VALIDATION FIELD */}
-              {(mode === "login" || mode === "forgot" || (mode === "signup" && isMobile)) && (
-                <div className="flex items-start gap-3 px-1 cursor-pointer group/robot select-none border-t border-white/5 pt-3 mt-1" onClick={() => setIsRobotTicked(!isRobotTicked)}>
+              {/* "NOT A ROBOT" SECURE TICK CIRCLE VALIDATION FIELD (Omitted entirely from signup workflows) */}
+              {(mode === "login" || mode === "forgot") && (
+                <div className="flex items-start gap-3 px-1 cursor-pointer group/robot select-none border-t border-white/10 pt-3 mt-1" onClick={() => setIsRobotTicked(!isRobotTicked)}>
                   <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 shrink-0 ${isRobotTicked ? 'bg-white border-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-white/20 group-hover/robot:border-white/40'}`}>
                     {isRobotTicked && <CheckCircle2 size={14} className="text-black" />}
                   </div>
@@ -448,7 +462,7 @@ const Auth = ({ onAuthSuccess }) => {
               )}
 
               {/* ACTION EXECUTION SUBMIT BUTTON */}
-              <div className="space-y-3 pt-1">
+              <div className="space-y-4 pt-1">
                 <button 
                   type={(mode === "signup" && !isMobile && step === 1) ? "button" : "submit"}
                   onClick={(mode === "signup" && !isMobile && step === 1) ? handleNextSlide : undefined}
@@ -480,6 +494,14 @@ const Auth = ({ onAuthSuccess }) => {
               </div>
             </form>
           </div>
+
+          {/* BRAND LEGAL FOOTER CONTAINER (Placed OUTSIDE the card layout components completely on Mobile systems) */}
+          {isMobile && (
+            <div className="mt-8 text-center text-[11px] font-bold tracking-[0.2em] text-slate-500 uppercase select-none font-mono py-2 animate-fadeIn">
+              ESTRA © 2026. All Rights Reserved.
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -490,6 +512,13 @@ const Auth = ({ onAuthSuccess }) => {
         }
         .smooth-scroll-container {
           -webkit-overflow-scrolling: touch;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
       `}</style>
     </div>
