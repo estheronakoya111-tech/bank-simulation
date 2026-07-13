@@ -149,7 +149,7 @@ const Otp = ({ username, onAuthSuccess, onBack, userEmail }) => {
     setStatusMsg("Sending new code...");
     
     try {
-      // Pull backup registration parameters or username identities cleanly
+      // Pull backup registration parameters, explicit component props, or session registers cleanly
       const targetEmail = userEmail || sessionStorage.getItem("pending_email") || username;
       const response = await fetch(`${import.meta.env.VITE_BANK_BACKEND_URL}/resend-otp`, {
         method: "POST",
